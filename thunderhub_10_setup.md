@@ -5,6 +5,10 @@ permalink: /setup/
 nav_order: 2
 ---
 
+# **Setup**
+
+---
+
 ## **Requirements**
 
 - NPM installed
@@ -14,9 +18,9 @@ nav_order: 2
 
 ## Config
 
-You can define some environment variables that ThunderHub can start with. To do this create a `.env.local` (or use the template `.env`) file in the root directory with the following parameters:
+You can define some environment variables that ThunderHub can start with. To do this create a `.env.local` file in the root directory with the following parameters:
 
-**Important - If you want to use the `.env` template file and don't want it to be replaced after an update please duplicate and rename to `.env.local`**
+**Notice - If you use the `.env` template file and don't want it to be replaced after an update please duplicate and rename to `.env.local`**
 
 ```bash
 # -----------
@@ -136,9 +140,13 @@ Note that the `port` in `serverUrl` should be the gRPC port that LND is listenin
 
 If you want to access lnd remotely, the setting below should be added to `lnd.conf`.
 
-```
-tlsextraip=<externally-reachable-ip-address> # option 1) when accessing by IP
-tlsextradomain=<externally-reachable-domain-name> # option 2) when accessing by domain
+```bash
+# option 1) when accessing by IP
+tlsextraip=<externally-reachable-ip-address>
+rpclisten=0.0.0.0:10009
+
+# option 2) when accessing by domain
+tlsextradomain=<externally-reachable-domain-name>
 rpclisten=0.0.0.0:10009
 ```
 
@@ -278,5 +286,3 @@ location /thub {
   proxy_pass http://localhost:3000/thub;
 }
 ```
-
----

@@ -11,16 +11,6 @@ nav_order: 1
 ![Home Screenshot](/images/index_home.png)
 [![license](https://img.shields.io/github/license/DAVFoundation/captain-n3m0.svg?style=flat-square)](https://github.com/DAVFoundation/captain-n3m0/blob/master/LICENSE)
 
-## Table Of Contents
-
-- [Introduction](#introduction)
-- [Integrations](#integrations)
-- [Features](#features)
-- [Installation](#installation)
-- [Updating](#updating)
-- [Development](#development)
-- [Docker deployment](#docker)
-
 ---
 
 ## Introduction
@@ -29,13 +19,24 @@ ThunderHub is an **open-source** LND node manager where you can manage and monit
 
 ---
 
-### Integrations
+## Integrations
+
+ThunderHub has been integrated into different services making it simpler for users to take advantage of it.
 
 **BTCPay Server**
 ThunderHub is currently integrated into BTCPay for easier deployment. If you already have a BTCPay server and want to add ThunderHub or even want to start a BTCPay server from zero, be sure to check out this [tutorial](https://apotdevin.com/blog/thunderhub-btcpay)
 
 **Raspiblitz**
 For Raspiblitz users you can also get ThunderHub running by following this [gist](https://gist.github.com/openoms/8ba963915c786ce01892f2c9fa2707bc)
+
+**myNode**
+MyNode is one of the easiest ways to run a dedicated, easy to use, Bitcoin Node and Lightning Wallet. Now with ThunderHub and more of the best open source software around, myNode makes it easy, safe and secure to use Bitcoin and Lightning. [Website](https://mynodebtc.com/)
+
+**Voltage**
+To use the Lightning Network at it's full capacity it's a must to have your own node but this can come with a cost and require more technical skills. Voltage removes all these burdens and let's you quickly and easily deploy production ready nodes. Now with ThunderHub integrated as well, you get an awesome UI to manage it all. [Website](https://voltage.cloud/)
+
+**Umbrel**
+Running a bitcoin and lightning node might seem like a difficult, programming intensive job to accomplish. With Umbrel everything is simplified and put behind an awesome and easy to use UI. Now with an App Store included, you can, with the click of a button, add the ThunderHub interface to take full control of your node. [Website](https://getumbrel.com/)
 
 ---
 

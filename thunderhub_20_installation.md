@@ -5,7 +5,9 @@ permalink: /installation/
 nav_order: 3
 ---
 
-## Installation
+# Installation
+
+---
 
 To run ThunderHub you first need to clone this repository.
 
@@ -13,16 +15,16 @@ To run ThunderHub you first need to clone this repository.
 git clone https://github.com/apotdevin/thunderhub.git
 ```
 
-After cloning the repository run `yarn` or `npm install` to get all the necessary modules installed.
-
-After all the dependencies have finished installing, you can proceed to build and run the app with the following commands.
+The following commands will install all the necessary modules, build and run the app:
 
 ```javascript
 // Yarn
+yarn
 yarn build
 yarn start
 
 // NPM
+npm install
 npm run build
 npm start
 ```
