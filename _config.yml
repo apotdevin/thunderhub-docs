@@ -1,3 +1,10 @@
 title: ThunderHub
 remote_theme: pmarsceill/just-the-docs
-search_enabled: true
+aux_links:
+  "ThunderHub Repository":
+    - "https://github.com/apotdevin/thunderhub"
+  "Contribute! Source on GitHub":
+    - "https://github.com/apotdevin/thunderhub-docs"
+# search_enabled: true
+# enable theme for local usage
+# theme: "just-the-docs"
