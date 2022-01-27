@@ -18,12 +18,6 @@ git clone https://github.com/apotdevin/thunderhub.git
 The following commands will install all the necessary modules, build and run the app:
 
 ```javascript
-// Yarn
-yarn
-yarn build
-yarn start
-
-// NPM
 npm install
 npm run build
 npm start
@@ -31,14 +25,10 @@ npm start
 
 This will start the server on port 3000, so just go to `localhost:3000` to see the app running.
 
-If you want to specify a different port (for example port `4000`) run with:
+If you want to specify a different port (for example port `4000`) add this env variable:
 
-```js
-// Yarn
-yarn start -p 4000
-
-// NPM
-npm start -- -p 4000
+```bash
+PORT=4000
 ```
 
 For **PRODUCTION**, if you want to reduce the space taken up by ThunderHub you can run `npm prune --production` after the build is completed.
@@ -54,10 +44,6 @@ _Commands have to be called inside the thunderhub repository folder._
 **1. Script Shortcut**
 
 ```sh
-// Yarn
-yarn update
-
-// NPM
 npm run update
 ```
 
@@ -70,12 +56,6 @@ sh ./scripts/updateToLatest.sh
 **3. Step by Step**
 
 ```sh
-// Yarn
-git pull
-yarn
-yarn build
-
-// NPM
 git pull
 npm install
 npm run build
@@ -84,10 +64,6 @@ npm run build
 **Then you can start your server:**
 
 ```sh
-// Yarn
-yarn start
-
-// NPM
 npm run start
 ```
 
@@ -98,10 +74,6 @@ npm run start
 If you want to develop on ThunderHub and want hot reloading when you do changes, use the following commands:
 
 ```js
-//Yarn
-yarn dev
-
-//NPM
 npm run dev
 ```
 
