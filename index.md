@@ -42,9 +42,9 @@ Running a bitcoin and lightning node might seem like a difficult, programming in
 
 ### Tech Stack
 
-This repository consists of a **NextJS** server that handles both the backend **Graphql Server** and the frontend **React App**. ThunderHub connects to your Lightning Network node by using the gRPC ports.
+This repository consists of a **NestJS** server that handles both the backend **Graphql Server** and the frontend **React App**. ThunderHub connects to your Lightning Network node by using the gRPC ports.
 
-- NextJS
+- NestJS
 - ReactJS
 - Typescript
 - Styled-Components
