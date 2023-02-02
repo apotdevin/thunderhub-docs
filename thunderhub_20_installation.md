@@ -15,7 +15,7 @@ To run ThunderHub you first need to clone this repository.
 git clone https://github.com/apotdevin/thunderhub.git
 ```
 
-The following commands will install all the necessary modules, build and run the app:
+The following commands will install all the necessary modules, build and run the app (enter into the newly created `thunderhub` folder first):
 
 ```javascript
 npm install
