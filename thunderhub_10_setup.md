@@ -138,6 +138,8 @@ accounts:
 Notice you can specify either `macaroonPath` and `certificatePath` or `macaroon` and `certificate`.
 Note that the `port` in `serverUrl` should be the gRPC port that LND is listening on.
 
+#### Remote access
+
 If you want to access lnd remotely, the setting below should be added to `lnd.conf`.
 
 ```bash
@@ -192,6 +194,7 @@ accounts:
 ```
 
 If you don't specify `defaultNetwork` then `mainnet` is used as the default.
+**Please mind that `lndDir` property will not work in case of [Remote access](#remote-access)**
 
 #### Encrypted Macaroons
 
