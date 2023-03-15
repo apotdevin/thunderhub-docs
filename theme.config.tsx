@@ -11,9 +11,9 @@ const config: DocsThemeConfig = {
         viewBox="0 0 24 24"
         fill="none"
         stroke="white"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       >
         <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
         <rect x="9" y="9" width="6" height="6"></rect>
