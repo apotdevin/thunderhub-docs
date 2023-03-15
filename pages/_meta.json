@@ -1,0 +1,17 @@
+{
+  "index": "👋 Intro",
+  "setup": "🛠️ Setup",
+  "installation": "🌩️ Installation",
+  "website": {
+    "title": "ThunderHub.io ↗",
+    "type": "page",
+    "href": "https://thunderhub.io/",
+    "newWindow": true
+  },
+  "twitter": {
+    "title": "Twitter ↗",
+    "type": "page",
+    "href": "https://twitter.com/thunderhubio",
+    "newWindow": true
+  }
+}
