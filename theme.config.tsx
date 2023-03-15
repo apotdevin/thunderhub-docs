@@ -1,5 +1,6 @@
 import React from 'react';
 import { DocsThemeConfig } from 'nextra-theme-docs';
+import { useRouter } from 'next/router';
 
 const config: DocsThemeConfig = {
   logo: (
@@ -69,9 +70,12 @@ const config: DocsThemeConfig = {
     ),
   },
   useNextSeoProps() {
-    return {
-      titleTemplate: '%s – ThunderHub',
-    };
+    const { asPath } = useRouter();
+    if (asPath !== '/') {
+      return {
+        titleTemplate: '%s – ThunderHub',
+      };
+    }
   },
   primaryHue: { dark: 50, light: 40 },
 };
