@@ -58,7 +58,7 @@ const config: DocsThemeConfig = {
   feedback: {
     useLink: () => 'mailto:thunderhub@protonmail.com',
   },
-  docsRepositoryBase: 'https://github.com/apotdevin/thunderhub-docs',
+  docsRepositoryBase: 'https://github.com/apotdevin/thunderhub-docs/blob/main/',
   footer: {
     text: (
       <span>
