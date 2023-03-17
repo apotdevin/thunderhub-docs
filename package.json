@@ -1,0 +1,46 @@
+{
+  "name": "thunderhub-docs",
+  "description": "Manage and monitor your lightning network node right inside your browser",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "format": "npx prettier --write .",
+    "prepare": "husky install",
+    "lint-staged": "lint-staged",
+    "lint": "next lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apotdevin/thunderhub-docs.git"
+  },
+  "author": "Anthony Potdevin <thunderhub@protonmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/apotdevin/thunderhub-docs/issues"
+  },
+  "homepage": "https://thunderhub.io/",
+  "dependencies": {
+    "next": "^13.0.6",
+    "nextra": "latest",
+    "nextra-theme-docs": "latest",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "18.11.10",
+    "@typescript-eslint/eslint-plugin": "^5.55.0",
+    "eslint": "^8.36.0",
+    "eslint-config-next": "^13.2.4",
+    "eslint-config-prettier": "^8.7.0",
+    "eslint-config-standard-with-typescript": "^34.0.1",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^15.6.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-react": "^7.32.2",
+    "husky": "^8.0.0",
+    "lint-staged": "^13.2.0",
+    "prettier": "2.8.4",
+    "typescript": "^4.9.5"
+  }
+}

@@ -1,0 +1,9 @@
+/.next
+/.node_modules
+.gitignore
+.husky/pre-commit
+.prettierignore
+CNAME
+LICENSE
+public/assets/index_home.png
+public/favicon.ico

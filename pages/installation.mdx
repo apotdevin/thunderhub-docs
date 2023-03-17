@@ -1,23 +1,16 @@
----
-layout: default
-title: Installation
-permalink: /installation/
-nav_order: 3
----
+# **Installation**
 
-# Installation
-
----
+## Install
 
 To run ThunderHub you first need to clone this repository.
 
-```js
+```js copy
 git clone https://github.com/apotdevin/thunderhub.git
 ```
 
 The following commands will install all the necessary modules, build and run the app (enter into the newly created `thunderhub` folder first):
 
-```javascript
+```javascript copy
 npm install
 npm run build
 npm start
@@ -27,13 +20,11 @@ This will start the server on port 3000, so just go to `localhost:3000` to see t
 
 If you want to specify a different port (for example port `4000`) add this env variable:
 
-```bash
+```bash copy
 PORT=4000
 ```
 
 For **PRODUCTION**, if you want to reduce the space taken up by ThunderHub you can run `npm prune --production` after the build is completed.
-
----
 
 ## Updating
 
@@ -43,19 +34,19 @@ _Commands have to be called inside the thunderhub repository folder._
 
 **1. Script Shortcut**
 
-```sh
+```sh copy
 npm run update
 ```
 
 **2. Script**
 
-```sh
+```sh copy
 sh ./scripts/updateToLatest.sh
 ```
 
 **3. Step by Step**
 
-```sh
+```sh copy
 git pull
 npm install
 npm run build
@@ -63,21 +54,17 @@ npm run build
 
 **Then you can start your server:**
 
-```sh
+```sh copy
 npm run start
 ```
-
----
 
 ## Development
 
 If you want to develop on ThunderHub and want hot reloading when you do changes, use the following commands:
 
-```js
+```js copy
 npm run dev
 ```
-
----
 
 ## Docker
 

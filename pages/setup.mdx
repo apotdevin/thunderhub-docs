@@ -1,20 +1,9 @@
----
-layout: default
-title: Setup
-permalink: /setup/
-nav_order: 2
----
-
 # **Setup**
 
----
-
-## **Requirements**
+## Requirements
 
 - NPM installed
 - Node installed (Version 14.15 or higher)
-
----
 
 ## Config
 
@@ -22,7 +11,7 @@ You can define some environment variables that ThunderHub can start with. To do 
 
 **Notice - If you use the `.env` template file and don't want it to be replaced after an update please duplicate and rename to `.env.local`**
 
-```bash
+```bash copy
 # -----------
 # Server Configs
 # -----------
@@ -51,7 +40,7 @@ ThunderHub connects to different external services for example to fetch BOS scor
 
 You need to add the following parameter into your `.env` file with your TOR endpoint:
 
-```bash
+```bash copy
 TOR_PROXY_SERVER='socks://your.tor.endpoint' # i.e. 'socks://127.0.0.1:9050'
 ```
 
@@ -59,7 +48,7 @@ TOR_PROXY_SERVER='socks://your.tor.endpoint' # i.e. 'socks://127.0.0.1:9050'
 
 You can define an account to work with SSO cookie authentication by adding the following parameters in the `.env` file:
 
-```bash
+```bash copy
 # -----------
 # SSO Account Configs
 # -----------
@@ -72,7 +61,7 @@ LOGOUT_URL = 'http://LogoutToThisUrl.com' # If not set it will logout to "/login
 
 To login to this account you must add the cookie file content to the end of your ThunderHub url. For example:
 
-```
+```bash copy
 http://localhost:3000/sso?token=[COOKIE]
 ```
 
@@ -86,7 +75,7 @@ You can DANGEROUSLY remove SSO authentication. This is useful for example if you
 
 The configuration for a non authenticated SSO account would look like this:
 
-```bash
+```bash copy
 # -----------
 # SSO Account Configs
 # -----------
@@ -98,7 +87,7 @@ DANGEROUS_NO_SSO_AUTH = 'true' # Default: false
 
 To login to this account go to the following url:
 
-```
+```bash copy
 http://localhost:3000/sso?token=1
 ```
 
@@ -106,7 +95,7 @@ http://localhost:3000/sso?token=1
 
 You can add accounts on the server by adding this parameter to the `.env` file:
 
-```bash
+```bash copy
 # -----------
 # Account Configs
 # -----------
@@ -115,24 +104,24 @@ ACCOUNT_CONFIG_PATH = '/path/to/config/file.yaml'; # i.e. '/data/thubConfig.yaml
 
 You must also add a YAML file at that location with the following format:
 
-```yaml
-masterPassword: "password" # Default password unless defined in account
+```yaml copy
+masterPassword: 'password' # Default password unless defined in account
 accounts:
-  - name: "Account 1"
-    serverUrl: "url:port"
-    macaroonPath: "/path/to/admin.macaroon"
-    certificatePath: "/path/to/tls.cert"
-    password: "password for account 1"
-  - name: "Account 2"
-    serverUrl: "url:port"
-    macaroonPath: "/path/to/admin.macaroon"
-    certificatePath: "/path/to/tls.cert"
+  - name: 'Account 1'
+    serverUrl: 'url:port'
+    macaroonPath: '/path/to/admin.macaroon'
+    certificatePath: '/path/to/tls.cert'
+    password: 'password for account 1'
+  - name: 'Account 2'
+    serverUrl: 'url:port'
+    macaroonPath: '/path/to/admin.macaroon'
+    certificatePath: '/path/to/tls.cert'
     # password: Leave without password and it will use the master password
-  - name: "Account 3"
-    serverUrl: "url:port"
-    macaroon: "0201056..." # HEX or Base64 encoded macaroon
-    certificate: "0202045c..." # HEX or Base64 encoded certificate
-    password: "password for account 3"
+  - name: 'Account 3'
+    serverUrl: 'url:port'
+    macaroon: '0201056...' # HEX or Base64 encoded macaroon
+    certificate: '0202045c...' # HEX or Base64 encoded certificate
+    password: 'password for account 3'
 ```
 
 Notice you can specify either `macaroonPath` and `certificatePath` or `macaroon` and `certificate`.
@@ -142,7 +131,7 @@ Note that the `port` in `serverUrl` should be the gRPC port that LND is listenin
 
 If you want to access lnd remotely, the setting below should be added to `lnd.conf`.
 
-```bash
+```bash copy
 # option 1) when accessing by IP
 tlsextraip=<externally-reachable-ip-address>
 rpclisten=0.0.0.0:10009
@@ -158,12 +147,12 @@ It's possible to set different parts of the accounts based on environment variab
 
 You can use the following environment variables: `YML_ENV_1`, `YML_ENV_2`, `YML_ENV_3`, `YML_ENV_4` and fill your accounts in the following way:
 
-```yaml
+```yaml copy
 accounts:
-  - name: "{YML_ENV_1}"
-    serverUrl: "{YML_ENV_2}"
-    macaroon: "macaroonforthisaccount"
-    certificate: "{YML_ENV_4}"
+  - name: '{YML_ENV_1}'
+    serverUrl: '{YML_ENV_2}'
+    macaroon: 'macaroonforthisaccount'
+    certificate: '{YML_ENV_4}'
 ```
 
 ThunderHub will take care of replacing the fields with the correct environment variables. The `{YML_ENV_[1-4]}` can only be used for fields inside the accounts. So for example using it for the `masterPassword` will not work.
@@ -179,21 +168,22 @@ Default folders (assuming LND is at path `/lnd`):
 
 The YAML file for this example would be:
 
-```yaml
-masterPassword: "password" # Default password unless defined in account
-defaultNetwork: "testnet" # Default network unless defined in account
+```yaml copy
+masterPassword: 'password' # Default password unless defined in account
+defaultNetwork: 'testnet' # Default network unless defined in account
 accounts:
-  - name: "Account1"
-    serverUrl: "url:port"
+  - name: 'Account1'
+    serverUrl: 'url:port'
     # network: Leave without network and it will use the default network
-    lndDir: "/path/to/lnd"
-  - name: "Account2"
-    serverUrl: "url:port"
-    network: "mainnet"
-    lndDir: "/path/to/lnd"
+    lndDir: '/path/to/lnd'
+  - name: 'Account2'
+    serverUrl: 'url:port'
+    network: 'mainnet'
+    lndDir: '/path/to/lnd'
 ```
 
 If you don't specify `defaultNetwork` then `mainnet` is used as the default.
+
 **Please mind that `lndDir` property will not work in case of [Remote access](#remote-access)**
 
 #### Encrypted Macaroons
@@ -202,10 +192,10 @@ You can use AES encrypted macaroons and have ThunderHub decrypt them and store t
 
 Macaroons should be AES encrypted. This is an example for Javascript:
 
-```js
+```js copy
 const encrypted = CryptoJS.AES.encrypt(
-  "Hex or Base64 encoded Macaroon",
-  "Secret Passphrase"
+  'Hex or Base64 encoded Macaroon',
+  'Secret Passphrase'
 ).toString();
 ```
 
@@ -213,16 +203,16 @@ You can use the `macaroonPath` field and let ThunderHub look for the file or dir
 
 You must let ThunderHub know that the macaroon is encrypted by adding an `encrypted` field to your account like such:
 
-```yaml
-masterPassword: "password"
+```yaml copy
+masterPassword: 'password'
 accounts:
-  - name: "Account 1"
-    serverUrl: "url:port"
-    macaroonPath: "/path/to/encrypted.admin.macaroon"
+  - name: 'Account 1'
+    serverUrl: 'url:port'
+    macaroonPath: '/path/to/encrypted.admin.macaroon'
     encrypted: true # This field is necessary
-  - name: "Account 2"
-    serverUrl: "url:port"
-    macaroon: "EnCrYpTeD-MaCaRoOn"
+  - name: 'Account 2'
+    serverUrl: 'url:port'
+    macaroon: 'EnCrYpTeD-MaCaRoOn'
     encrypted: true # This field is necessary
 ```
 
@@ -256,7 +246,7 @@ If you want to disable this option you can set `NO_VERSION_CHECK=true` in your `
 
 Adding a BASE_PATH will run the ThunderHub server on a different base path.
 
-```bash
+```bash copy
 # -----------
 # Server Configs
 # -----------
@@ -272,7 +262,7 @@ For example:
 
 There is a prebuilt [Docker](https://hub.docker.com/repository/docker/apotdevin/thunderhub) image with a preset `BASE_PATH=/thub` in case you need it and prefer not building your own Docker image.
 
-```bash
+```bash copy
 # Normal docker image
 docker pull apotdevin/thunderhub:v0.11.1
 
@@ -284,7 +274,7 @@ To build your own docker image with the `basePath` of your choice you can use `d
 
 You can run ThunderHub behind a proxy with the following configuration (NGINX example):
 
-```nginx
+```nginx copy
 location /thub {
   proxy_pass http://localhost:3000/thub;
 }

@@ -1,2 +1,3 @@
 # thunderhub-docs
-Documentation for ThunderHub
+
+Documentation for [ThunderHub](https://thunderhub.io/)
