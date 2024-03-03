@@ -79,9 +79,9 @@ The configuration for a non authenticated SSO account would look like this:
 # -----------
 # SSO Account Configs
 # -----------
-SSO_SERVER_URL = 'url and port to node'; # i.e. '127.0.0.1:10009'
-SSO_CERT_PATH = '/path/to/tls/certificate'; # i.e. '\lnd\alice\tls.cert'
-SSO_MACAROON_PATH = '/path/to/macaroon/folder'; # i.e. '\lnd\alice\data\chain\bitcoin\regtest\'
+SSO_SERVER_URL = 'url and port to node' # i.e. '127.0.0.1:10009'
+SSO_CERT_PATH = '/path/to/tls/certificate' # i.e. '\lnd\alice\tls.cert'
+SSO_MACAROON_PATH = '/path/to/macaroon/folder' # i.e. '\lnd\alice\data\chain\bitcoin\regtest\'
 DANGEROUS_NO_SSO_AUTH = 'true' # Default: false
 ```
 
@@ -99,7 +99,7 @@ You can add accounts on the server by adding this parameter to the `.env` file:
 # -----------
 # Account Configs
 # -----------
-ACCOUNT_CONFIG_PATH = '/path/to/config/file.yaml'; # i.e. '/data/thubConfig.yaml'
+ACCOUNT_CONFIG_PATH = '/path/to/config/file.yaml' # i.e. '/data/thubConfig.yaml'
 ```
 
 You must also add a YAML file at that location with the following format:
