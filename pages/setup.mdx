@@ -112,10 +112,10 @@ accounts:
     macaroonPath: '/path/to/admin.macaroon'
     certificatePath: '/path/to/tls.cert'
     password: 'password for account 1'
-  - name: 'Account 2'
-    serverUrl: 'url:port'
-    macaroonPath: '/path/to/admin.macaroon'
-    certificatePath: '/path/to/tls.cert'
+  - name: 'UmbrelAcc 2' # 'e10412154fe6e43709.... should be the same id as in umbrel request'
+    serverUrl: 'url:port' # 'umbrel.local:10009' (ip address like 192.168... does not work)
+    macaroonPath: './myConf/admin.macaroon' # content root path (umbrel dir: /home/umbrel/umbrel/app-data/lightning/data/lnd/data/chain/bitcoin/mainnet)
+    certificatePath: './myConf/tls.cert' # content root path, (umbrel dir: /umbrel/app-data/lightning/data/lnd)
     # password: Leave without password and it will use the master password
   - name: 'Account 3'
     serverUrl: 'url:port'
