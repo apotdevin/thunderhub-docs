@@ -1,0 +1,112 @@
+import { Callout, Steps } from 'nextra/components';
+
+# Developer Environment
+
+This guide is for contributors or anyone who wants a local regtest network with litd and ThunderHub for development and testing.
+
+<Callout type="warning">
+  This builds ThunderHub from source. Clone the [ThunderHub
+  repository](https://github.com/apotdevin/thunderhub) first. For normal usage,
+  use the [Connect to Existing litd](/litd/existing-litd) or [litd with Existing
+  LND](/litd/remote-mode) guides instead.
+</Callout>
+
+## Services
+
+| Service            | Port(s)           | Description                         |
+| ------------------ | ----------------- | ----------------------------------- |
+| `bitcoind`         | 18443             | Bitcoin Core in regtest mode        |
+| `litd-alice`       | 8443, 10009, 9735 | Alice's litd node (public universe) |
+| `litd-bob`         | 8444, 10010, 9736 | Bob's litd node                     |
+| `thunderhub-alice` | 3000              | ThunderHub for Alice                |
+| `thunderhub-bob`   | 3001              | ThunderHub for Bob                  |
+
+Alice is configured with `--taproot-assets.universe.public-access=rw` for asset universe syncing.
+
+<Steps>
+
+### Clone and Start
+
+```bash copy
+git clone https://github.com/apotdevin/thunderhub.git
+cd thunderhub/docker/litd
+docker compose up --build
+```
+
+Wait for both litd nodes to finish initializing (1-2 minutes on first run).
+
+### Access the Interfaces
+
+| Interface        | URL                    | Password           |
+| ---------------- | ---------------------- | ------------------ |
+| ThunderHub Alice | http://localhost:3000  | `thunderhub`       |
+| ThunderHub Bob   | http://localhost:3001  | `thunderhub`       |
+| litd Alice       | https://localhost:8443 | `testpassword123!` |
+| litd Bob         | https://localhost:8444 | `testpassword123!` |
+
+<Callout type="info">
+  The litd UI uses a self-signed certificate. Your browser will show a security
+  warning — proceed past it for local development.
+</Callout>
+
+### Fund Wallets
+
+```bash copy
+# Fund Alice
+docker compose exec bitcoind bitcoin-cli \
+  -regtest -rpcuser=rpcuser -rpcpassword=rpcpassword \
+  generatetoaddress 6 \
+  $(docker compose exec litd-alice lncli --network=regtest newaddress p2wkh | jq -r '.address')
+
+# Fund Bob
+docker compose exec bitcoind bitcoin-cli \
+  -regtest -rpcuser=rpcuser -rpcpassword=rpcpassword \
+  generatetoaddress 6 \
+  $(docker compose exec litd-bob lncli --network=regtest newaddress p2wkh | jq -r '.address')
+```
+
+### Connect Peers and Open a Channel
+
+```bash copy
+# Get Bob's public key
+BOB_PUBKEY=$(docker compose exec litd-bob lncli --network=regtest getinfo | jq -r '.identity_pubkey')
+
+# Connect Alice to Bob
+docker compose exec litd-alice lncli --network=regtest connect ${BOB_PUBKEY}@litd-bob:9735
+
+# Open a 1M sat channel
+docker compose exec litd-alice lncli --network=regtest openchannel \
+  --node_key=${BOB_PUBKEY} \
+  --local_amt=1000000
+
+# Confirm the channel
+docker compose exec bitcoind bitcoin-cli \
+  -regtest -rpcuser=rpcuser -rpcpassword=rpcpassword \
+  generatetoaddress 6 \
+  $(docker compose exec litd-alice lncli --network=regtest newaddress p2wkh | jq -r '.address')
+```
+
+</Steps>
+
+## Cleanup
+
+```bash copy
+# Stop containers (data preserved)
+docker compose down
+
+# Stop containers and delete all data
+docker compose down
+rm -rf data/
+```
+
+## Troubleshooting
+
+### litd nodes are slow to start
+
+- litd runs multiple sub-daemons. First startup can take 2-3 minutes while wallets are created.
+- Monitor progress with `docker compose logs -f litd-alice`.
+
+### Browser certificate warning on litd UI
+
+- litd uses a self-signed TLS certificate. Click through the browser warning for local development.
+- In production, place litd behind a reverse proxy with a valid certificate.

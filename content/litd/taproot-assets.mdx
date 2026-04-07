@@ -1,0 +1,55 @@
+import { Callout } from 'nextra/components';
+
+# Taproot Assets Workflow
+
+With the [developer environment](/litd/developer-environment) running, you can test Taproot Assets end-to-end.
+
+## Mint an Asset
+
+```bash copy
+# Mint 1000 units of "Thunderbux"
+docker compose exec litd-alice tapcli \
+  --tlscertpath=/root/.lit/tls.cert \
+  --macaroonpath=/root/.lit/regtest/super.macaroon \
+  --rpcserver=localhost:8443 \
+  assets mint \
+  --type normal \
+  --name Thunderbux \
+  --supply 1000 \
+  --new_grouped_asset
+
+# Finalize the mint batch
+docker compose exec litd-alice tapcli \
+  --tlscertpath=/root/.lit/tls.cert \
+  --macaroonpath=/root/.lit/regtest/super.macaroon \
+  --rpcserver=localhost:8443 \
+  assets mint finalize
+
+# Confirm the mint transaction
+docker compose exec bitcoind bitcoin-cli \
+  -regtest -rpcuser=rpcuser -rpcpassword=rpcpassword \
+  generatetoaddress 6 \
+  $(docker compose exec litd-alice lncli --network=regtest newaddress p2wkh | jq -r '.address')
+```
+
+## Federate Universes
+
+For Bob to receive assets from Alice, both nodes must know about each other's universe:
+
+```bash copy
+# Add Alice's universe to Bob
+docker compose exec litd-bob tapcli \
+  --tlscertpath=/root/.lit/tls.cert \
+  --macaroonpath=/root/.lit/regtest/super.macaroon \
+  --rpcserver=localhost:8443 \
+  universe federation add \
+  --universe_host=litd-alice:8443
+
+# Add Bob's universe to Alice
+docker compose exec litd-alice tapcli \
+  --tlscertpath=/root/.lit/tls.cert \
+  --macaroonpath=/root/.lit/regtest/super.macaroon \
+  --rpcserver=localhost:8443 \
+  universe federation add \
+  --universe_host=litd-bob:8443
+```

@@ -1,0 +1,153 @@
+import { Callout, Tabs } from 'nextra/components';
+
+# Running litd with an Existing LND Node
+
+If you already have an LND node running and want to add Lightning Terminal services (Loop, Pool, Faraday, Taproot Assets) alongside it, you can run litd in **remote mode**. This is the most common production setup — litd connects to your existing LND instance instead of running its own.
+
+<Callout type="info">
+  In remote mode, litd does **not** start its own LND. It connects to your
+  existing LND over gRPC and layers additional services on top. Your existing
+  LND process, wallet, channels, and configuration remain unchanged.
+</Callout>
+
+## Prerequisites
+
+- A running LND node (v0.18.0+) with gRPC accessible
+- LND's TLS certificate and admin macaroon
+- [Docker](https://docs.docker.com/get-docker/) installed (for the ThunderHub side)
+
+## 1. Install litd
+
+<Tabs items={['Binary', 'From source']}>
+
+<Tabs.Tab>
+
+Download the latest release from [github.com/lightninglabs/lightning-terminal/releases](https://github.com/lightninglabs/lightning-terminal/releases) and extract it:
+
+```bash copy
+tar -xzf lightning-terminal-<version>-<os>-<arch>.tar.gz
+sudo install -m 0755 lightning-terminal-<version>-<os>-<arch>/litd /usr/local/bin/
+```
+
+</Tabs.Tab>
+
+<Tabs.Tab>
+
+```bash copy
+git clone https://github.com/lightninglabs/lightning-terminal.git
+cd lightning-terminal
+make install
+```
+
+</Tabs.Tab>
+
+</Tabs>
+
+## 2. Configure litd for Remote Mode
+
+Create a `lit.conf` file (default location `~/.lit/lit.conf`):
+
+```ini copy
+# -- litd remote mode --
+lnd-mode=remote
+network=mainnet
+
+# -- Connection to your existing LND --
+remote.lnd.rpcserver=127.0.0.1:10009
+remote.lnd.macaroonpath=/path/to/.lnd/data/chain/bitcoin/mainnet/admin.macaroon
+remote.lnd.tlscertpath=/path/to/.lnd/tls.cert
+
+# -- litd UI --
+uipassword=your-secure-ui-password
+httpslisten=0.0.0.0:8443
+```
+
+<Callout type="warning">
+  Replace the paths above with the actual paths to your LND data directory. If
+  LND is on a different machine, update `remote.lnd.rpcserver` to its IP address
+  and ensure the port is reachable.
+</Callout>
+
+## 3. Start litd
+
+```bash copy
+litd --uipassword=your-secure-ui-password
+```
+
+Or run it as a systemd service:
+
+```ini copy
+# /etc/systemd/system/litd.service
+[Unit]
+Description=Lightning Terminal Daemon
+After=lnd.service
+
+[Service]
+ExecStart=/usr/local/bin/litd
+User=bitcoin
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash copy
+sudo systemctl enable --now litd
+```
+
+## 4. Connect ThunderHub
+
+Since your LND node is unchanged, ThunderHub connects to LND directly — the same way it would without litd:
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'My Node'
+    serverUrl: '127.0.0.1:10009'
+    macaroonPath: '/lnd/admin.macaroon'
+    certificatePath: '/lnd/tls.cert'
+```
+
+```bash copy
+docker run -d \
+  --name thunderhub \
+  -p 3000:3000 \
+  -e ACCOUNT_CONFIG_PATH=/data/thubConfig.yaml \
+  -v /path/to/thubConfig.yaml:/data/thubConfig.yaml:ro \
+  -v /path/to/.lnd:/lnd:ro \
+  apotdevin/thunderhub:latest
+```
+
+You now have:
+
+- **LND** — your existing node, unchanged
+- **litd** — providing Loop, Pool, Faraday, and Taproot Assets via `https://your-node:8443`
+- **ThunderHub** — full node management at `http://localhost:3000`
+
+## Architecture Overview
+
+```
+┌──────────────┐     gRPC      ┌──────────────┐
+│  ThunderHub   │──────────────▶│     LND      │
+│  :3000        │               │  :10009      │
+└──────────────┘               └──────┬───────┘
+                                      │ gRPC
+                               ┌──────┴───────┐
+                               │  litd         │
+                               │  (remote mode)│
+                               │  :8443        │
+                               │               │
+                               │  ┌─ Loop      │
+                               │  ├─ Pool      │
+                               │  ├─ Faraday   │
+                               │  └─ Taproot   │
+                               └──────────────┘
+```
+
+## Troubleshooting
+
+- **`unable to connect to LND`** — Verify `remote.lnd.rpcserver` points to the correct LND gRPC address and that the port is open.
+- **`permission denied`** — The macaroon path must point to a macaroon with admin permissions. Check file permissions (`chmod 600`).
+- **`TLS handshake failure`** — Ensure `remote.lnd.tlscertpath` matches the certificate your LND instance is using. If you regenerated LND's TLS cert, update the path or copy the new cert.
+- **litd starts but services are unavailable** — Check `litd` logs for sub-daemon startup errors: `journalctl -u litd -f`.

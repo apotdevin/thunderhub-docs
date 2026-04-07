@@ -1,0 +1,28 @@
+import { Callout } from 'nextra/components';
+
+# Lightning Terminal (litd)
+
+[Lightning Terminal (litd)](https://github.com/lightninglabs/lightning-terminal) is an all-in-one daemon by Lightning Labs that bundles LND, Loop, Pool, Faraday, and Taproot Assets (`tapd`) into a single process. ThunderHub supports litd as a backend, connecting to its LND gRPC endpoint to provide full node management along with Taproot Assets support.
+
+<Callout type="info">
+  ThunderHub connects to LND's gRPC endpoint (default port `10009`), the same
+  way it connects to a standalone LND node. The additional litd services (Loop,
+  Pool, Taproot Assets) are available through the litd UI at
+  `https://your-node:8443`.
+</Callout>
+
+## Setup Guides
+
+Choose the guide that matches your setup:
+
+| Guide                                                | Description                                                                      |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [Connect to Existing litd](/litd/existing-litd)      | You already have litd running and want to connect ThunderHub to it               |
+| [litd with Existing LND](/litd/remote-mode)          | You already have LND running and want to add litd alongside it **(most common)** |
+| [Developer Environment](/litd/developer-environment) | Set up a local regtest network with litd and ThunderHub for development          |
+| [Taproot Assets Workflow](/litd/taproot-assets)      | Mint and transfer Taproot Assets using the developer environment                 |
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed (for running ThunderHub)
+- A running litd or LND node (mainnet or testnet), or follow the [Developer Environment](/litd/developer-environment) guide to create one locally
