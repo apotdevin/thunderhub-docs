@@ -47,8 +47,16 @@ On Voltage, you can configure the price oracle directly from the dashboard — n
 
 If you prefer to not use a price oracle, you can instead opt to disable the price quote safety checks. This does however mean that your node will automatically accept whatever swap price the counterparty node returns. To disable price checks, add the following to your `lit.conf`:
 
+##### Tapd v0.7.2 and earlier:
+
 ```ini copy
 taproot-assets.experimental.rfq.skipacceptquotepricecheck=true
+```
+
+##### Tapd v0.8.0 and later:
+
+```ini copy
+taproot-assets.experimental.rfq.skipquoteacceptverify=true
 ```
 
 <Callout type="warning">
