@@ -3,6 +3,12 @@ import { Callout, Tabs } from 'nextra/components';
 # Installation
 
 <Callout type="info">
+  **Want a public URL in minutes?** Skip the local install and follow our
+  [Deploy to Fly.io](/installation/fly-io) guide. ThunderHub runs in the cloud
+  and connects to any Lightning node you can reach.
+</Callout>
+
+<Callout type="info">
   **Using an AI coding agent?** Drop our ready-made
   [`AGENTS.md`](/installation/agents-md) into your ThunderHub repo root and your
   agent can handle the full setup for you — including litd and Taproot Assets.
@@ -98,7 +104,7 @@ Open `http://localhost:3000` to access ThunderHub.
 To run ThunderHub in development mode with hot reloading:
 
 ```bash copy
-npm run dev
+npm run start:dev
 ```
 
 ## Breaking Changes in v0.15.0
