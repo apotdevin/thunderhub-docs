@@ -1,0 +1,31 @@
+---
+title: Get Started
+description: Pick the install path that matches your setup — Docker, from source, Fly.io, or a managed Voltage node.
+---
+
+ThunderHub runs anywhere you can run a Node.js 24 process or a Docker container. Pick the path that fits your environment:
+
+| Path                                        | When to use it                                                                                                                                              |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Docker](/get-started/docker)**           | Recommended for most users. Self-contained image, mounts your YAML + macaroon, no Node install.                                                             |
+| **[From source](/get-started/from-source)** | Contributors, or environments where Docker isn't available. Builds the NestJS server and the React client locally.                                          |
+| **[Fly.io](/get-started/fly-io)**           | One-machine cloud deploy with a public HTTPS URL. Uses the repo's `fly.toml`, persistent volume, and `DB_ENCRYPTION_KEY` for at-rest credential encryption. |
+| **[Voltage](/get-started/voltage)**         | You already run a Lightning node on Voltage and want full Taproot Assets support beyond the bundled ThunderHub.                                             |
+
+After ThunderHub is running, head to [Accounts](/accounts) to wire it up to your node.
+
+<Callout type="info">
+  **Using an AI coding agent?** Drop the ready-made
+  [`AGENTS.md`](/developer/agents-md) into your ThunderHub repo root and any
+  agent (Claude Code, Cursor, Copilot, etc.) gets full setup context for free.
+</Callout>
+
+## Requirements at a glance
+
+- **Node.js 24+** if you build from source. Docker users don't need Node locally.
+- A reachable LND or litd node (mainnet, testnet, mutinynet, or your own [regtest dev environment](/developer/local-environment)).
+- For Docker on macOS or Windows: use `host.docker.internal` to reach a node running on the host. On Linux: use the host's LAN IP or `--network=host`.
+
+## Update policy
+
+Docker users pull a new image and recreate the container. Source users run `npm run update` (or `git pull && npm install && npm run build`). Fly.io users `git pull && fly deploy`. None of these wipe your data — YAML accounts and the SQLite/Postgres database persist across updates.

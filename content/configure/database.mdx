@@ -1,0 +1,85 @@
+---
+title: Database
+description: Enable SQLite or Postgres persistence, configure AES-256-GCM at-rest encryption, and back up your data.
+---
+
+ThunderHub runs without a database by default — accounts come from YAML, sessions are stateless JWTs. Setting `DB_TYPE` turns on a [Drizzle ORM](https://orm.drizzle.team/) layer that powers:
+
+- [Database users](/accounts/database-users) — multi-user logins.
+- DB nodes — node credentials managed from the UI.
+- Per-channel notes for Magma trades and general bookkeeping.
+
+## Pick a driver
+
+```bash copy
+DB_TYPE='sqlite'      # 'sqlite' | 'postgres' | unset → disabled
+```
+
+### SQLite
+
+```bash copy
+DB_TYPE='sqlite'
+DB_SQLITE_PATH='/data/thunderhub.db'
+```
+
+- Single file, ideal for personal deployments and Fly.io.
+- Requires write access to the directory holding the file.
+- The committed `fly.toml` already wires this up against a `/data` volume.
+
+### Postgres
+
+```bash copy
+DB_TYPE='postgres'
+DB_POSTGRES_URL='postgres://user:pass@host:5432/thunderhub'
+```
+
+- Best for shared / multi-host deployments.
+- Uses the [`postgres`](https://www.npmjs.com/package/postgres) driver. Both `postgres://` and `postgresql://` URLs work.
+
+## At-rest encryption
+
+```bash copy
+DB_ENCRYPTION_KEY='<64-char hex string>'
+```
+
+Generate one with `openssl rand -hex 32`. ThunderHub uses it to encrypt macaroons and TLS certs stored against DB nodes (AES-256-GCM, authenticated). Without the key, credentials are still stored but in cleartext — strongly recommended to set this in production.
+
+<Callout type="warning">
+  Treat `DB_ENCRYPTION_KEY` like a master key. Lose it and every encrypted node
+  credential in the DB becomes unrecoverable. Rotating the key requires
+  decrypting and re-encrypting each credential — there's no in-app rotation yet,
+  so plan around it.
+</Callout>
+
+## Migrations
+
+Drizzle migrations live in the [`drizzle/`](https://github.com/apotdevin/thunderhub/tree/master/drizzle) folder of the repo. ThunderHub runs them on boot — you don't run any SQL manually, and you can roll forward by deploying a newer ThunderHub release.
+
+## Backups
+
+The data worth backing up:
+
+| What               | SQLite                                                                                           | Postgres                                |
+| ------------------ | ------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| The whole DB       | Copy `DB_SQLITE_PATH` while idle, or `sqlite3 thunderhub.db ".backup '/snapshot/thunderhub.db'"` | `pg_dump $DB_POSTGRES_URL > backup.sql` |
+| The encryption key | `DB_ENCRYPTION_KEY` (store separately!)                                                          | Same                                    |
+
+Restore the file/dump and ensure `DB_ENCRYPTION_KEY` matches what was used at write time.
+
+On Fly.io the SQLite file lives on a persistent volume — back it up via `fly ssh sftp get` or by running `litestream` against the volume if you want continuous replication.
+
+## What gets stored
+
+Looking at the schema as of v0.18.4:
+
+- **`users`** — email, Argon2 password hash, role, team link.
+- **`teams`** — team names (a `Default` team is created on first-run setup).
+- **`nodes`** — name, type (`lnd`/`litd`), detected network, socket, AES-256-GCM-encrypted macaroon and (optional) cert.
+- **`user_nodes`** — link from a user to nodes they can access.
+- **`channel_metadata`** — per-channel notes, used by Magma and general channel listing.
+
+Nothing in the DB references the YAML accounts — YAML accounts continue to work side-by-side with the DB.
+
+## Disabling the DB
+
+Unset `DB_TYPE`. ThunderHub will skip the Drizzle provider entirely; the login screen no longer shows the **Account Login** entry. The DB file (or Postgres data) is left untouched in case you re-enable later.

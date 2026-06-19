@@ -1,0 +1,106 @@
+---
+title: Reverse proxy & networking
+description: Serve ThunderHub under a URL prefix, behind HTTPS, or through Tor.
+---
+
+ThunderHub plays well behind a reverse proxy. Three knobs cover most setups: `BASE_PATH` (URL prefix), `USE_HTTPS` (tighten Helmet + secure cookies), and `TOR_PROXY_SERVER` (route outbound calls through Tor).
+
+## Base path
+
+To serve ThunderHub under a URL prefix (`/thub` instead of `/`):
+
+```bash copy
+BASE_PATH='/thub'
+```
+
+<Callout type="warning">
+  `BASE_PATH` is baked into the client bundle at build time. You can't change it
+  from a running container — you need a build that knows about it.
+</Callout>
+
+Three ways to get a build with a base path:
+
+### 1. Use the prebuilt image
+
+```bash copy
+docker pull apotdevin/thunderhub:base-latest
+```
+
+`base-latest` is the same code as `latest` built with `BASE_PATH=/thub`.
+
+### 2. Build your own Docker image
+
+```bash copy
+docker build --build-arg BASE_PATH='/thub' -t my-thunderhub .
+```
+
+### 3. Build from source
+
+```bash copy
+BASE_PATH='/thub' npm run build
+```
+
+Run with the same `BASE_PATH` value at runtime.
+
+## NGINX example
+
+```nginx copy
+location /thub/ {
+  proxy_pass http://localhost:3000/thub/;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+
+  # SSE / WebSocket support for live updates
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection 'upgrade';
+  proxy_buffering off;
+}
+```
+
+The trailing slashes matter — they keep the upstream path matching the front-end.
+
+## HTTPS
+
+When a reverse proxy terminates TLS for you, flip:
+
+```bash copy
+USE_HTTPS=true
+```
+
+This:
+
+- Tightens Helmet's Content Security Policy (`upgrade-insecure-requests`).
+- Marks the session cookie `Secure` so it's only sent over HTTPS.
+
+For Fly.io users, the committed `fly.toml` sets `force_https = true` at the edge — set `USE_HTTPS=true` in the app's secrets / env to keep cookies aligned.
+
+## Tor outbound proxy
+
+ThunderHub makes outbound HTTP requests to fetch fees, prices, and version info. To route them through Tor:
+
+```bash copy
+TOR_PROXY_SERVER='socks://127.0.0.1:9050'
+```
+
+It's a SOCKS5 proxy URL — works with Tor, but anything that speaks SOCKS5 will do. Outbound gRPC to your Lightning node does **not** go through this proxy; the proxy only applies to HTTP requests.
+
+To also stop the outbound calls altogether instead of proxying them, see the privacy toggles in [Configuration](/configure/index#privacy).
+
+## Cloudflare / Caddy / Traefik
+
+Same idea as NGINX:
+
+- Forward the prefix on both sides (or no prefix at all if `BASE_PATH` is empty).
+- Pass through `Upgrade`/`Connection` headers for Server-Sent Events to keep live updates working.
+- Disable buffering on the upstream so SSE events stream as they arrive.
+
+## Tor hidden service
+
+If ThunderHub is behind a Tor hidden service:
+
+- Use a localhost upstream (`127.0.0.1:3000`) in your `torrc`.
+- Set `USE_HTTPS=false` (Tor terminates the security at the .onion layer).
+- The browser cookie still works because Tor Browser keeps cookies per-onion.

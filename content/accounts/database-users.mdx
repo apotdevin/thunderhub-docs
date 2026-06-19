@@ -1,0 +1,101 @@
+---
+title: Database users
+description: Enable the database-backed multi-user mode — create users, manage nodes in the UI, and store credentials encrypted at rest.
+---
+
+When `DB_TYPE` is set (and ideally `DB_ENCRYPTION_KEY`), ThunderHub stops being a single-operator tool and turns into a multi-user app. Users log in with email + password, add nodes through the UI, and credentials are encrypted at rest with AES-256-GCM.
+
+This mode coexists with [YAML accounts](/accounts/yaml-config). Both login methods show up side-by-side on the login screen.
+
+## When to use it
+
+- More than one operator needs access.
+- You want to add and remove nodes without editing a YAML file.
+- You're deploying to [Fly.io](/get-started/fly-io), where credentials need at-rest encryption.
+
+## Prerequisites
+
+Set these environment variables before the first boot:
+
+```bash copy
+DB_TYPE='sqlite'
+DB_SQLITE_PATH='/data/thunderhub.db'
+DB_ENCRYPTION_KEY='<64-char hex from `openssl rand -hex 32`>'
+```
+
+Postgres works too:
+
+```bash copy
+DB_TYPE='postgres'
+DB_POSTGRES_URL='postgres://user:pass@host:5432/thunderhub'
+DB_ENCRYPTION_KEY='<64-char hex>'
+```
+
+<Callout type="warning">
+  Back up `DB_ENCRYPTION_KEY` somewhere safe. Losing it makes every encrypted
+  node credential in the DB unrecoverable — you'd have to re-add each node.
+</Callout>
+
+Drizzle migrations run automatically on boot, so you don't run any SQL by hand. Full details: [Database](/configure/database).
+
+## First-run setup
+
+Open ThunderHub. With the DB enabled and no users yet, you get a **first-run setup** screen.
+
+<Steps>
+
+### Create the owner user
+
+Enter an email and a password (minimum 8 characters). ThunderHub:
+
+1. Argon2-hashes the password (`@node-rs/argon2`).
+2. Creates a `Default` team.
+3. Creates the user with role `owner`, linked to the team.
+
+### Log in
+
+After setup, the regular login screen appears. Pick the **Account Login** option and enter the email + password you just set.
+
+### Add a node
+
+You'll land on the **Connect a Node** screen. Pick a node type — **LND** or **litd** — and provide:
+
+- **Name** — display name in the UI.
+- **Server URL** — `host:port` of the gRPC endpoint.
+- **Macaroon** — hex string of an admin (or superadmin) macaroon.
+- **TLS cert** — PEM string. Skip for Voltage and other CA-signed endpoints.
+
+ThunderHub tests the connection (calls `getWalletInfo` against the live node), detects the network, encrypts the macaroon and cert with `DB_ENCRYPTION_KEY`, and stores both in the DB. The network is stored with the node so the right Amboss endpoint (mainnet vs mutinynet) is used later.
+
+</Steps>
+
+## Managing nodes through the UI
+
+Each DB user sees only the nodes linked to them. From the UI you can:
+
+- **Add** more nodes (same flow as above).
+- **Rename** a node — the display name updates immediately.
+- **Re-detect network** — when you save edits, ThunderHub re-runs `getWalletInfo` against the live node and updates the stored network. Handy if a node migrated between mainnet and mutinynet.
+- **Delete** a node — both the user-node link and the encrypted credentials are removed, and the in-memory connection is evicted.
+
+## Teams
+
+Every user belongs to a team. The first owner created above gets a `Default` team. Future versions of ThunderHub will expose team mutations directly; for now the team scopes which nodes can be linked together. See `src/server/modules/user/user.service.ts` for the schema in code.
+
+## Storage layout
+
+The database holds:
+
+- `users` — email, Argon2 password hash, role, team link.
+- `teams` — team names.
+- `nodes` — name, type (`lnd`/`litd`), network, socket, AES-256-GCM-encrypted macaroon, optional encrypted cert.
+- `user_nodes` — link table from a user to the nodes they can access.
+- `channel_metadata` — per-channel notes (see [Magma trading](/taproot-assets/magma-trading)).
+
+Back up the SQLite file (or pg_dump the Postgres DB) alongside `DB_ENCRYPTION_KEY`. Without both, you cannot recover stored credentials.
+
+## How it relates to YAML accounts
+
+If both YAML accounts and DB users are configured, the login screen shows both: YAML accounts as their own entries (by `name`) and DB users grouped under **Account Login**. Once logged in, ThunderHub looks at the JWT to know which mode you used and which nodes to expose.
+
+There's also an `MASTER_PASSWORD_OVERRIDE` for YAML and a `DANGEROUS_NO_SSO_AUTH` for SSO. None of these affect DB users — DB authentication is always email + Argon2 password.

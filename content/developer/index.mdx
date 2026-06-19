@@ -1,0 +1,88 @@
+---
+title: Developer
+description: Architecture overview for contributors — monorepo layout, tech stack, and provider pattern.
+---
+
+ThunderHub is a TypeScript monorepo: a [NestJS](https://nestjs.com/) backend that exposes a GraphQL API and a [Vite](https://vitejs.dev/)-bundled [React](https://react.dev/) SPA. Source lives in [github.com/apotdevin/thunderhub](https://github.com/apotdevin/thunderhub).
+
+## Layout
+
+```
+thunderhub/
+├── src/
+│   ├── server/           # NestJS app (Apollo Server, providers, DB)
+│   │   ├── modules/
+│   │   │   ├── accounts/         # YAML account loading & connection cache
+│   │   │   ├── api/              # GraphQL resolvers, one folder per feature
+│   │   │   ├── database/         # Drizzle provider (SQLite/Postgres)
+│   │   │   ├── files/            # YAML parsing, macaroon/cert resolution
+│   │   │   ├── node/             # LND / litd / tapd providers (ProviderRegistry)
+│   │   │   ├── security/         # JWT, decorators, RBAC, throttling
+│   │   │   └── user/             # DB-backed users, teams, DB nodes
+│   │   └── config/configuration.ts   # env var → typed config object
+│   └── client/           # React + Vite + Tailwind v4 + shadcn/ui
+├── drizzle/              # Migrations (run automatically on boot)
+├── docker/               # docker-compose stacks (incl. litd dev environment)
+├── docs/                 # ADDING_A_PROVIDER.md & other engineering notes
+├── schema.gql            # Generated GraphQL schema
+├── Dockerfile            # Multi-stage prod image
+└── fly.toml              # Fly.io deploy config
+```
+
+## Tech stack
+
+| Layer            | Technology                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| Server framework | NestJS 11 with Apollo Server                                                                   |
+| GraphQL          | Code-first (decorators) → `schema.gql`                                                         |
+| Persistence      | Drizzle ORM, SQLite (`better-sqlite3`) or Postgres                                             |
+| Logging          | Winston (`LOG_LEVEL`, `LOG_JSON`)                                                              |
+| Auth             | JWT (`jsonwebtoken`), bcryptjs for YAML, `@node-rs/argon2` for DB users, otplib for TOTP       |
+| LND              | [`lightning`](https://www.npmjs.com/package/lightning) npm package (v11+)                      |
+| Taproot Assets   | [`@lightningpolar/tapd-api`](https://www.npmjs.com/package/@lightningpolar/tapd-api) (patched) |
+| Client           | React 18, Apollo Client, Tailwind CSS 4, shadcn/ui                                             |
+| Build            | NestJS CLI (server), Vite (client), Docker multi-stage                                         |
+| Runtime          | Node.js 24.13.1 (`.nvmrc`)                                                                     |
+
+## Provider pattern
+
+Lightning backends plug into ThunderHub through a `ProviderRegistryService`. Three providers ship today:
+
+| Provider | Location                        | Capabilities                                                 |
+| -------- | ------------------------------- | ------------------------------------------------------------ |
+| `lnd`    | `src/server/modules/node/lnd/`  | Wallet, channels, chain, invoices, payments, peers, forwards |
+| `litd`   | `src/server/modules/node/litd/` | Everything LND has + Taproot Assets via tapd                 |
+| `tapd`   | `src/server/modules/node/tapd/` | Taproot Assets (list, mint, burn, send, universe)            |
+
+`AccountsService` reads the YAML, resolves credentials, calls `ProviderRegistryService.getProvider(type).connect(config)`, and caches the gRPC client. DB nodes go through the same path with credentials decrypted from `DB_ENCRYPTION_KEY`.
+
+Adding a new provider (Core Lightning, Eclair, etc.) is documented in [`docs/ADDING_A_PROVIDER.md`](https://github.com/apotdevin/thunderhub/blob/master/docs/ADDING_A_PROVIDER.md).
+
+## Useful scripts
+
+```bash copy
+npm run start:dev      # NestJS + Vite in watch mode
+npm run build          # Production build (server + client)
+npm start              # Run production build
+npm test               # Jest unit tests
+npm run codegen        # Generate GraphQL types from schema.gql
+npm run update         # git pull + install + build + start
+```
+
+The pre-commit and pre-push hooks live in `.husky/` and `lint-staged` runs Prettier + ESLint on staged TypeScript.
+
+## GraphQL surface
+
+The generated schema is committed at `schema.gql` — useful for clients and for grepping. New resolvers go under `src/server/modules/api/<feature>/`, follow the existing decorator pattern, and add their fields to `schema.gql` automatically when the server boots.
+
+## Configuration
+
+All env vars are mapped to a typed `ConfigType` in `src/server/config/configuration.ts`. New options should follow the same pattern: read from `process.env`, parse with the right type, and expose through `ConfigService`.
+
+For end-user-facing settings, surface them via the `ClientConfig` portion of that file — anything in `clientConfig` is sent to the browser via `/api/config` and influences the UI.
+
+## Where to go from here
+
+- **[Local environment](/developer/local-environment)** — boot a regtest network with two litd nodes and two ThunderHubs.
+- **[AGENTS.md](/developer/agents-md)** — drop the ready-made AGENTS.md into the repo so AI coding agents have the setup context.
+- **Upstream docs**: [`docs/ADDING_A_PROVIDER.md`](https://github.com/apotdevin/thunderhub/blob/master/docs/ADDING_A_PROVIDER.md) and [`CLAUDE.md`](https://github.com/apotdevin/thunderhub/blob/master/CLAUDE.md) in the repo root.

@@ -32,22 +32,36 @@ export function baseOptions(): BaseLayoutProps {
       ),
     },
     githubUrl: 'https://github.com/apotdevin/thunderhub',
-    links: [
-      {
-        text: 'ThunderHub.io',
-        url: 'https://thunderhub.io/',
-        external: true,
-      },
-      {
-        text: 'Twitter',
-        url: 'https://twitter.com/thunderhubio',
-        external: true,
-      },
-      {
-        text: 'Telegram',
-        url: 'https://t.me/thunderhub',
-        external: true,
-      },
-    ],
   };
+}
+
+export function sidebarFooterLinks() {
+  return (
+    <div className="flex flex-col gap-1 border-t border-fd-border pt-3 text-sm">
+      <a
+        href="https://thunderhub.io/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-fd-muted-foreground hover:text-fd-foreground"
+      >
+        ThunderHub.io
+      </a>
+      <a
+        href="https://twitter.com/thunderhubio"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-fd-muted-foreground hover:text-fd-foreground"
+      >
+        Twitter
+      </a>
+      <a
+        href="https://t.me/thunderhub"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-fd-muted-foreground hover:text-fd-foreground"
+      >
+        Telegram
+      </a>
+    </div>
+  );
 }

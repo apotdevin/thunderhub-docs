@@ -1,4 +1,12 @@
 {
   "title": "Docs",
-  "pages": ["index", "installation", "setup", "litd"]
+  "pages": [
+    "index",
+    "get-started",
+    "accounts",
+    "configure",
+    "taproot-assets",
+    "developer",
+    "reference"
+  ]
 }

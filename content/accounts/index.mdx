@@ -1,0 +1,28 @@
+---
+title: Accounts
+description: How operators log in and how nodes are connected — YAML accounts, database users, or LiT SSO.
+---
+
+ThunderHub supports three login modes. Each one decides both _who can log in_ and _which nodes they reach_. You can mix them in one deployment.
+
+| Mode                                           | Best for                              | Who logs in                          | Where credentials live                                                        |
+| ---------------------------------------------- | ------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------- |
+| **[YAML accounts](/accounts/yaml-config)**     | Single-operator self-hosters          | One password per account in the YAML | A `thubConfig.yaml` file at `ACCOUNT_CONFIG_PATH`                             |
+| **[Database users](/accounts/database-users)** | Multi-user, UI-driven node management | Email + Argon2-hashed password       | SQLite or Postgres. Node creds AES-256-GCM-encrypted with `DB_ENCRYPTION_KEY` |
+| **[LiT SSO](/accounts/sso)**                   | Inside Lightning Terminal's UI        | LiT cookie + macaroon                | `SSO_*` env vars point at LiT's files                                         |
+
+If you already have a YAML and want to also enable the database, just set `DB_TYPE` + `DB_ENCRYPTION_KEY`. Both login modes will be offered on the login screen.
+
+## Picking a mode
+
+- **One operator, one or two nodes, headless server.** → YAML. Easiest to back up, no DB to maintain.
+- **Multiple teammates, need to add nodes through the UI, want encrypted at-rest credentials.** → Database users.
+- **Running inside LiT and don't want a second login screen.** → SSO.
+
+## Connecting to litd
+
+Regardless of the login mode, connecting to a Lightning Terminal node (`type: litd`) is the same surface area — gRPC + macaroon + TLS cert. The [litd connection guide](/accounts/litd) covers both remote-mode (litd attached to your existing LND) and embedded-LND (litd ships its own LND).
+
+## Connecting to Voltage
+
+Voltage nodes run litd. Follow the [Voltage guide](/get-started/voltage) for the dashboard walkthrough and macaroon bakery; the YAML/UI side then looks like any other litd connection.

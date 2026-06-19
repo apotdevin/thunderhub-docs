@@ -1,0 +1,191 @@
+---
+title: Voltage
+description: Connect a self-hosted ThunderHub to a Voltage Lightning node (mainnet or mutinynet) for full Taproot Assets support.
+---
+
+[Voltage](https://voltage.cloud) hosts Lightning nodes for you. Voltage nodes run litd, which means ThunderHub can connect with the `litd` account type and get full Taproot Assets + Magma trading support.
+
+Works on **Mainnet** and **Mutinynet** (Voltage's signet-based testnet).
+
+<Callout type="warning">
+  Voltage ships a built-in ThunderHub for each node, but it currently runs
+  **v0.13.22** — pre-Taproot Assets and pre-`litd` connection type. This guide
+  is for running your own ThunderHub (**v0.15.5+**, latest recommended) against
+  the Voltage node to get the current feature set.
+</Callout>
+
+## Prerequisites
+
+- A [Voltage account](https://app.voltage.cloud/login).
+- A Voltage Lightning node (Standard tier or above).
+- ThunderHub v0.15.5+ (the `latest` Docker tag works). See [Docker](/get-started/docker) or [From source](/get-started/from-source).
+- [Docker](https://docs.docker.com/get-docker/) installed locally if you go the Docker route.
+
+## 1. Create a node on Voltage
+
+![Voltage Dashboard](/assets/voltage-new-node.png)
+
+1. Sign into [app.voltage.cloud](https://app.voltage.cloud/login) and click **New Node** → **Standard / Professional Node**.
+2. Pick **Mainnet** or **Mutinynet**.
+3. Set a node name and unlock password.
+4. Wait ~2 minutes for the node to deploy.
+5. Enable **Taproot Assets** in the node settings.
+
+   ![Enable Taproot Assets](/assets/voltage-ta.png)
+
+6. Configure a **price oracle** so the node can trade assets. In **Node Settings**, set the price oracle URL:
+
+   - **Mainnet:** `rfqrpc://price-oracle.amboss.tech:443`
+   - **Mutinynet:** `rfqrpc://price-oracle-dev.amboss.tech:443`
+
+   ![Voltage Price Oracle Settings](/assets/voltage-po.png)
+
+   Full details and alternatives: [Price Oracle](/taproot-assets/price-oracle).
+
+<Callout type="info">
+  Mutinynet is a signet test environment — channels open in ~30 seconds and
+  Voltage gives you free test coins. Great for trying Taproot Assets without
+  spending real sats.
+</Callout>
+
+## 2. Get the connection details
+
+You need two things from the Voltage dashboard.
+
+### Server URL
+
+![Server URL](/assets/voltage-api-endpoint.png)
+
+The API endpoint is on the node detail page. Format:
+
+| Network   | URL pattern                       |
+| --------- | --------------------------------- |
+| Mainnet   | `<node-name>.m.voltageapp.io:443` |
+| Mutinynet | `<node-name>.u.voltageapp.io:443` |
+
+<Callout type="info">
+  The port is **443** (HTTPS), not 10009 or 8443. Voltage terminates TLS with a
+  CA-signed cert — no custom `certificatePath` is needed.
+</Callout>
+
+### Superadmin macaroon
+
+![Macaroon Bakery](/assets/voltage-macaroon.png)
+
+1. On the node page, go to **Manage Access** → **Macaroon Bakery**.
+2. Bake and download a **superadmin** macaroon.
+3. Save it somewhere ThunderHub can read (e.g. `./voltage/superadmin.macaroon`).
+
+<Callout type="warning">
+  A **superadmin** macaroon is required — an admin or read-only macaroon won't
+  expose every litd capability.
+</Callout>
+
+## 3. Configure ThunderHub
+
+You have two ways to hand the credentials to ThunderHub.
+
+### Option A — YAML accounts
+
+Create a `thubConfig.yaml`:
+
+<Tabs items={['Mainnet', 'Mutinynet', 'Both']}>
+
+<Tab>
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'Voltage Mainnet'
+    type: litd
+    serverUrl: '<node-name>.m.voltageapp.io:443'
+    macaroonPath: '/data/voltage/superadmin.macaroon'
+```
+
+</Tab>
+
+<Tab>
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'Voltage Mutinynet'
+    type: litd
+    serverUrl: '<node-name>.u.voltageapp.io:443'
+    macaroonPath: '/data/voltage/superadmin.macaroon'
+```
+
+</Tab>
+
+<Tab>
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'Voltage Mainnet'
+    type: litd
+    serverUrl: '<mainnet-node-name>.m.voltageapp.io:443'
+    macaroonPath: '/data/voltage/mainnet-superadmin.macaroon'
+  - name: 'Voltage Mutinynet'
+    type: litd
+    serverUrl: '<mutinynet-node-name>.u.voltageapp.io:443'
+    macaroonPath: '/data/voltage/mutinynet-superadmin.macaroon'
+```
+
+</Tab>
+
+</Tabs>
+
+Key bits versus a stock LND config:
+
+- **`type: litd`** — switches ThunderHub into the litd connection mode and exposes Taproot Assets.
+- **No `certificatePath`** — Voltage's cert is CA-signed.
+- **Port 443** — Voltage proxies the gRPC over standard HTTPS.
+
+### Option B — Database users (UI-driven)
+
+If you've enabled the database (see [Docker](/get-started/docker#mode-2--database-users-multi-user-ui-driven) or [Database users](/accounts/database-users)), skip the YAML — log into ThunderHub, click **Add Node**, pick **litd**, paste the Voltage URL and superadmin macaroon. ThunderHub encrypts both in the DB.
+
+## 4. Run ThunderHub
+
+```bash copy
+docker run -d \
+  --name thunderhub \
+  -p 3000:3000 \
+  -e ACCOUNT_CONFIG_PATH=/data/thubConfig.yaml \
+  -v $(pwd)/thubConfig.yaml:/data/thubConfig.yaml:ro \
+  -v $(pwd)/voltage:/data/voltage:ro \
+  apotdevin/thunderhub:latest
+```
+
+### Docker Compose
+
+```yaml copy
+services:
+  thunderhub:
+    image: apotdevin/thunderhub:latest
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - ACCOUNT_CONFIG_PATH=/data/thubConfig.yaml
+    volumes:
+      - ./thubConfig.yaml:/data/thubConfig.yaml:ro
+      - ./voltage:/data/voltage:ro
+```
+
+```bash copy
+docker compose up -d
+```
+
+Open `http://localhost:3000` and log in with the `masterPassword` from your YAML (or the DB user email + password).
+
+![Taproot Assets](/assets/thunderhub-taproot-assets.png)
+
+## Troubleshooting
+
+- **Connection refused** — the node may be stopped on the Voltage dashboard.
+- **Invalid macaroon** — make sure you baked a **superadmin** macaroon. Re-bake if unsure.
+- **Wrong server URL** — port must be `443`; suffix is `.m.` for mainnet, `.u.` for mutinynet.
+- **Taproot Assets not showing** — `type: litd` must be set in the YAML (or `litd` selected in the Add Node UI). Without it, ThunderHub treats the connection as plain LND.
+- **Volume mount errors** — `macaroonPath` in the YAML must match the in-container path, not the host path.

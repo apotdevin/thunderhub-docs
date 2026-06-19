@@ -1,0 +1,110 @@
+---
+title: Environment variables
+description: Every environment variable ThunderHub reads, grouped by feature.
+---
+
+ThunderHub reads `.env` (committed defaults) then `.env.local` (your overrides). In Docker, pass these with `-e VAR=value` or via Compose `environment:`. Every variable is optional unless marked **required**.
+
+The authoritative source is [`src/server/config/configuration.ts`](https://github.com/apotdevin/thunderhub/blob/master/src/server/config/configuration.ts) in the ThunderHub repo.
+
+## Server
+
+| Variable           | Default                     | Description                                                                                              |
+| ------------------ | --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`         | `development`               | Set to `production` for prod builds. Affects JWT secret randomness, encrypted-macaroon support, logging. |
+| `PORT`             | `3000` (prod), `3001` (dev) | HTTP server port.                                                                                        |
+| `HOST`             | `localhost`                 | Bind address.                                                                                            |
+| `LOG_LEVEL`        | (Winston default)           | `silly`, `debug`, `verbose`, `http`, `info`, `warn`, or `error`.                                         |
+| `LOG_JSON`         | `false`                     | Emit logs as JSON lines for aggregators.                                                                 |
+| `USE_HTTPS`        | `false`                     | Mark session cookies `Secure` and tighten Helmet CSP. Set when fronted by HTTPS.                         |
+| `BASE_PATH`        | (empty)                     | URL prefix for the app (e.g. `/thub`). **Must be set at build time.**                                    |
+| `TOR_PROXY_SERVER` | (empty)                     | SOCKS proxy for outbound HTTP. e.g. `socks://127.0.0.1:9050`.                                            |
+
+## Interface
+
+| Variable   | Default | Description                                            |
+| ---------- | ------- | ------------------------------------------------------ |
+| `THEME`    | `dark`  | `dark` or `light`. Default theme — users can override. |
+| `CURRENCY` | `sat`   | `sat`, `btc`, or any supported fiat code.              |
+
+## Privacy / external services
+
+| Variable            | Default                 | Description                                                            |
+| ------------------- | ----------------------- | ---------------------------------------------------------------------- |
+| `MEMPOOL_URL`       | `https://mempool.space` | Base URL for mempool fee + block height lookups.                       |
+| `FETCH_PRICES`      | `true`                  | Set `false` to skip BTC fiat price fetches.                            |
+| `FETCH_FEES`        | `true`                  | Set `false` to skip mempool fee fetches.                               |
+| `DISABLE_LINKS`     | `false`                 | Set `true` to hide external links (block explorers, node directories). |
+| `DISABLE_LNMARKETS` | `false`                 | Set `true` to hide the LN Markets integration.                         |
+| `NO_VERSION_CHECK`  | `false`                 | Set `true` to skip the GitHub release check.                           |
+
+## Account
+
+| Variable                   | Default | Description                                                                          |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------ |
+| `ACCOUNT_CONFIG_PATH`      | (empty) | Path to `thubConfig.yaml`. See [YAML accounts](/accounts/yaml-config).               |
+| `MASTER_PASSWORD_OVERRIDE` | (empty) | When set, hashed at boot and used for every YAML account without its own `password`. |
+| `DISABLE_TWOFA`            | `false` | Skip TOTP verification at login even for accounts that have a `twofaSecret`.         |
+| `YML_ENV_1` … `YML_ENV_4`  | (empty) | Placeholder values substituted into `accounts[]` fields in the YAML.                 |
+
+## SSO
+
+| Variable                | Default | Description                                                                                   |
+| ----------------------- | ------- | --------------------------------------------------------------------------------------------- |
+| `COOKIE_PATH`           | (empty) | Path to the SSO cookie file. ThunderHub reads it on login and rotates it after success.       |
+| `SSO_SERVER_URL`        | (empty) | LiT gRPC endpoint, e.g. `127.0.0.1:10009`.                                                    |
+| `SSO_CERT_PATH`         | (empty) | Path to the LiT TLS certificate.                                                              |
+| `SSO_MACAROON_PATH`     | (empty) | Path to the **directory** containing the LiT macaroons (`admin.macaroon` is read from there). |
+| `SSO_NODE_TYPE`         | `lnd`   | `lnd` or `litd`. Controls how the SSO account is wired to providers.                          |
+| `MULTI_SSO`             | `false` | Enable multi-SSO mode (switch across multiple SSO configs from the UI).                       |
+| `DANGEROUS_NO_SSO_AUTH` | `false` | Skip the cookie check at login. **Dev only.** See [SSO](/accounts/sso).                       |
+| `LOGOUT_URL`            | (empty) | Redirect URL after logout. Useful with SSO platforms.                                         |
+
+## Database
+
+| Variable            | Default | Description                                                                                                                           |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB_TYPE`           | (unset) | `sqlite`, `postgres`, or unset to disable the database. See [Database](/configure/database).                                          |
+| `DB_SQLITE_PATH`    | (empty) | Path to the SQLite file. Required when `DB_TYPE=sqlite`.                                                                              |
+| `DB_POSTGRES_URL`   | (empty) | Postgres connection URL. Required when `DB_TYPE=postgres`.                                                                            |
+| `DB_ENCRYPTION_KEY` | (empty) | 64-char hex string (32 bytes). Enables AES-256-GCM at-rest encryption of DB-stored credentials. Generate with `openssl rand -hex 32`. |
+
+## Subscriptions
+
+These toggle the long-lived LND streams that power live dashboard updates.
+
+| Variable              | Default | Description                                     |
+| --------------------- | ------- | ----------------------------------------------- |
+| `DISABLE_ALL_SUBS`    | `false` | Disable every subscription at once.             |
+| `DISABLE_INVOICE_SUB` | `false` | Disable the invoice subscription.               |
+| `DISABLE_PAYMENT_SUB` | `false` | Disable the payment subscription.               |
+| `DISABLE_FORWARD_SUB` | `false` | Disable the forwarding subscription.            |
+| `DISABLE_CHANNEL_SUB` | `false` | Disable the channel subscription.               |
+| `DISABLE_BACKUP_SUB`  | `false` | Disable the static channel backup subscription. |
+
+## Amboss
+
+| Variable                    | Default | Description                                                |
+| --------------------------- | ------- | ---------------------------------------------------------- |
+| `DISABLE_HEALTHCHECK_PINGS` | `false` | Stop sending periodic health pings to Amboss.              |
+| `DISABLE_BALANCE_PUSHES`    | `false` | Stop pushing on-chain / channel balance updates to Amboss. |
+
+## Throttling
+
+| Variable         | Default | Description                                                                                      |
+| ---------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `THROTTLE_TTL`   | `10`    | NestJS Throttler window length in seconds.                                                       |
+| `THROTTLE_LIMIT` | `10`    | Max requests per window per IP. Public auth mutations stack stricter per-endpoint limits on top. |
+
+## URL overrides (dev / Amboss)
+
+These let you point ThunderHub at a non-production Amboss backend. Most operators don't need them.
+
+| Variable          | Default             | Description       |
+| ----------------- | ------------------- | ----------------- |
+| `SPACE_API_URL`   | derived per network | Amboss Space API. |
+| `AMBOSS_AUTH_URL` | derived per network | Amboss Auth API.  |
+| `MAGMA_API_URL`   | derived per network | Amboss Magma API. |
+| `TRADE_API_URL`   | derived per network | Amboss Trade API. |
+
+By default ThunderHub picks `*.amboss.tech` for mainnet, `*-dev.amboss.tech` for testnet/mutinynet.

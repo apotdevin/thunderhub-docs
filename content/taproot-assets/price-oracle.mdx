@@ -1,0 +1,98 @@
+---
+title: Price Oracle
+description: Configure a price oracle on your litd node so it can safely quote and accept Taproot Asset trades.
+---
+
+When your litd trades [Taproot Assets](https://docs.lightning.engineering/the-lightning-network/taproot-assets) via [ThunderHub](https://thunderhub.io) or [RailsX](https://amboss.tech/railsx), tapd performs **safety checks** on incoming swap quotes — it asks an external **price oracle** whether the counterparty's quote is within an acceptable margin. Without a price oracle (or an explicit opt-out), tapd rejects every trade.
+
+The oracle must know about every asset you intend to trade.
+
+## Amboss price oracle (recommended)
+
+[Amboss](https://amboss.tech) runs a price oracle that's kept in sync with every asset tradable in ThunderHub and RailsX. Two URLs:
+
+| Network             | Oracle URL                                  |
+| ------------------- | ------------------------------------------- |
+| Mainnet             | `rfqrpc://price-oracle.amboss.tech:443`     |
+| Testnet / Mutinynet | `rfqrpc://price-oracle-dev.amboss.tech:443` |
+
+### Self-hosted litd
+
+Add this to `~/.lit/lit.conf`:
+
+```ini copy
+# Mainnet
+taproot-assets.experimental.rfq.priceoracleaddress=rfqrpc://price-oracle.amboss.tech:443
+```
+
+Restart litd to pick up the change.
+
+### Voltage
+
+Voltage exposes this in the dashboard — no need to edit `lit.conf`.
+
+1. Open the node on the [Voltage dashboard](https://app.voltage.cloud).
+2. **Node Settings** → set the price oracle URL.
+
+   ![Voltage Price Oracle Settings](/assets/voltage-po.png)
+
+<Callout type="info">
+  The Amboss oracle is kept in sync with all assets supported by ThunderHub and
+  RailsX, so for most users this is the path of least resistance.
+</Callout>
+
+## Disable price checks (not recommended)
+
+If you'd rather skip the oracle entirely, you can tell tapd to accept every quote without verification. Tapd renamed the flag in v0.8.0:
+
+<Tabs items={['Tapd v0.8.0+', 'Tapd v0.7.2 and earlier']}>
+
+<Tab>
+
+```ini copy
+taproot-assets.experimental.rfq.skipquoteacceptverify=true
+```
+
+</Tab>
+
+<Tab>
+
+```ini copy
+taproot-assets.experimental.rfq.skipacceptquotepricecheck=true
+```
+
+</Tab>
+
+</Tabs>
+
+<Callout type="warning">
+  Skipping verification means your node accepts whatever rate the counterparty
+  quotes, including unfavorable ones. Only do this if you understand the risk
+  and have other mitigations in place.
+</Callout>
+
+## Third-party oracle
+
+tapd accepts any oracle that implements the `PriceOracle` RPC interface. Point at it the same way:
+
+```ini copy
+taproot-assets.experimental.rfq.priceoracleaddress=rfqrpc://your-oracle-host:port
+```
+
+Trades involving an asset the oracle doesn't know about will fail.
+
+## Apply and verify
+
+After updating `lit.conf`, restart litd:
+
+```bash copy
+sudo systemctl restart litd
+```
+
+Confirm the oracle is wired up:
+
+```bash copy
+journalctl -u litd -f | grep -i "price oracle"
+```
+
+More on tapd RFQs in the upstream [Taproot Assets RFQ docs](https://docs.lightning.engineering/lightning-network-tools/taproot-assets/rfq).

@@ -1,7 +1,7 @@
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { source } from '@/lib/source';
-import { baseOptions } from '@/lib/layout.shared';
+import { baseOptions, sidebarFooterLinks } from '@/lib/layout.shared';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './global.css';
@@ -20,7 +20,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
         <RootProvider>
-          <DocsLayout tree={source.getPageTree()} {...baseOptions()}>
+          <DocsLayout
+            tree={source.getPageTree()}
+            {...baseOptions()}
+            sidebar={{ footer: sidebarFooterLinks() }}
+          >
             {children}
           </DocsLayout>
         </RootProvider>

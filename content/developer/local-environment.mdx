@@ -1,0 +1,112 @@
+---
+title: Local environment
+description: Spin up a regtest network with two litd nodes and two ThunderHubs for contributing or testing Taproot Assets.
+---
+
+The repo ships a Docker Compose stack that boots a full regtest network in a couple of minutes: bitcoind, two litd nodes, and two ThunderHubs. It's the right setup for trying Taproot Assets, Magma trading, or any change you'd rather not test on a live node.
+
+<Callout type="warning">
+  This builds ThunderHub from source. Clone
+  [github.com/apotdevin/thunderhub](https://github.com/apotdevin/thunderhub)
+  first. For normal usage, use the [Docker](/get-started/docker) or
+  [Fly.io](/get-started/fly-io) guides instead.
+</Callout>
+
+## What you get
+
+| Service            | Ports               | Notes                                                 |
+| ------------------ | ------------------- | ----------------------------------------------------- |
+| `bitcoind`         | `18443`             | Bitcoin Core in regtest mode.                         |
+| `litd-alice`       | `8443, 10009, 9735` | Alice's litd. Public universe (`--public-access=rw`). |
+| `litd-bob`         | `8444, 10010, 9736` | Bob's litd.                                           |
+| `thunderhub-alice` | `3000`              | ThunderHub pointed at Alice.                          |
+| `thunderhub-bob`   | `3001`              | ThunderHub pointed at Bob.                            |
+
+<Steps>
+
+### Clone and start
+
+```bash copy
+git clone https://github.com/apotdevin/thunderhub.git
+cd thunderhub/docker/litd
+docker compose up --build
+```
+
+First boot takes 1–2 minutes — litd creates the wallets and starts sub-daemons.
+
+### Access the interfaces
+
+| Interface        | URL                    | Password           |
+| ---------------- | ---------------------- | ------------------ |
+| ThunderHub Alice | http://localhost:3000  | `thunderhub`       |
+| ThunderHub Bob   | http://localhost:3001  | `thunderhub`       |
+| litd Alice UI    | https://localhost:8443 | `testpassword123!` |
+| litd Bob UI      | https://localhost:8444 | `testpassword123!` |
+
+<Callout type="info">
+  litd uses a self-signed cert. The browser will warn — click through for local
+  development.
+</Callout>
+
+### Fund the wallets
+
+```bash copy
+# Fund Alice
+docker compose exec bitcoind bitcoin-cli \
+  -regtest -rpcuser=rpcuser -rpcpassword=rpcpassword \
+  generatetoaddress 6 \
+  $(docker compose exec litd-alice lncli --network=regtest newaddress p2wkh | jq -r '.address')
+
+# Fund Bob
+docker compose exec bitcoind bitcoin-cli \
+  -regtest -rpcuser=rpcuser -rpcpassword=rpcpassword \
+  generatetoaddress 6 \
+  $(docker compose exec litd-bob lncli --network=regtest newaddress p2wkh | jq -r '.address')
+```
+
+### Connect and open a channel
+
+```bash copy
+BOB_PUBKEY=$(docker compose exec litd-bob lncli --network=regtest getinfo | jq -r '.identity_pubkey')
+
+docker compose exec litd-alice lncli --network=regtest connect ${BOB_PUBKEY}@litd-bob:9735
+
+docker compose exec litd-alice lncli --network=regtest openchannel \
+  --node_key=${BOB_PUBKEY} \
+  --local_amt=1000000
+
+# Confirm
+docker compose exec bitcoind bitcoin-cli \
+  -regtest -rpcuser=rpcuser -rpcpassword=rpcpassword \
+  generatetoaddress 6 \
+  $(docker compose exec litd-alice lncli --network=regtest newaddress p2wkh | jq -r '.address')
+```
+
+</Steps>
+
+## Try Taproot Assets
+
+With the channel open, head to [Workflow](/taproot-assets/workflow) and mint, finalize, and federate an asset between Alice and Bob.
+
+For Magma trading, [Price Oracle](/taproot-assets/price-oracle) and [Magma trading](/taproot-assets/magma-trading) cover the rest of the setup.
+
+## Cleanup
+
+```bash copy
+docker compose down               # stop containers, keep data
+docker compose down && rm -rf data/   # wipe everything
+```
+
+## Troubleshooting
+
+### litd nodes are slow to start
+
+litd runs multiple sub-daemons. First start takes 2–3 minutes; watch progress with `docker compose logs -f litd-alice`.
+
+### Browser cert warning
+
+litd's TLS cert is self-signed. Accept the warning for local development. In production, front litd with a reverse proxy that holds a real cert.
+
+### Ports already in use
+
+The stack uses 3000, 3001, 8443, 8444, 9735, 9736, 10009, 10010, and 18443. Either stop whatever is using them or edit `docker/litd/docker-compose.yaml` to remap.

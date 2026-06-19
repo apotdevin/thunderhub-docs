@@ -1,0 +1,74 @@
+---
+title: From Source
+description: Clone the ThunderHub repo, install dependencies, and run the NestJS server with the React client.
+---
+
+Building from source is the right path if you want to contribute, run a customized build (different `BASE_PATH`, patched dependencies), or just don't want Docker in the loop.
+
+## Requirements
+
+- **[Node.js](https://nodejs.org/en) 24** or newer. The repo pins `v24.13.1` in `.nvmrc` — if you use [`nvm`](https://github.com/nvm-sh/nvm) or [`fnm`](https://github.com/Schniz/fnm), run `nvm use` / `fnm use` after cloning.
+- **npm** — bundled with Node.
+
+## Install and run
+
+```bash copy
+git clone https://github.com/apotdevin/thunderhub.git
+cd thunderhub
+npm install
+npm run build
+npm start
+```
+
+ThunderHub serves on `http://localhost:3000`. Override with `PORT=4000 npm start` (or set it in `.env.local`).
+
+For a production server, prune devDependencies after the build to shave the install footprint:
+
+```bash copy
+npm prune --production
+```
+
+## Development mode
+
+Hot-reloading dev server (NestJS + Vite in watch mode):
+
+```bash copy
+npm run start:dev
+```
+
+The repo also exposes a regtest dev environment with two litd nodes — see [Developer environment](/developer/local-environment).
+
+## Configure
+
+ThunderHub reads `.env` (committed defaults) then `.env.local` (your overrides). Create `.env.local` and put any environment variables there — they survive `git pull`. The full list lives in the [environment variable reference](/reference/env-vars); the most common starting points:
+
+```bash copy
+ACCOUNT_CONFIG_PATH='/path/to/thubConfig.yaml'
+# OR — to use the database mode instead
+DB_TYPE='sqlite'
+DB_SQLITE_PATH='/path/to/thunderhub.db'
+DB_ENCRYPTION_KEY='<64-char hex from `openssl rand -hex 32`>'
+```
+
+See [Accounts](/accounts) to decide which mode to use.
+
+## Updating
+
+```bash copy
+npm run update
+```
+
+That script wraps `git pull && npm install && npm run build && npm start`. To do it by hand:
+
+```bash copy
+git pull
+npm install
+npm run build
+npm start
+```
+
+Your `.env.local` and YAML / database files are untouched.
+
+## Custom base path
+
+To serve under a URL prefix (e.g. `/thub` behind a reverse proxy), set `BASE_PATH` **before** running `npm run build` — it's baked into the client bundle. Details in [Reverse proxy](/configure/reverse-proxy).

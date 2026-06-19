@@ -1,0 +1,4 @@
+{
+  "title": "Accounts",
+  "pages": ["index", "yaml-config", "database-users", "litd", "sso"]
+}

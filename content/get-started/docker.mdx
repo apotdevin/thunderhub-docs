@@ -1,0 +1,121 @@
+---
+title: Docker
+description: Run ThunderHub from the official Docker image with a YAML config or a database for multi-user setups.
+---
+
+ThunderHub publishes multi-arch images for `linux/amd64` and `linux/arm64` to [Docker Hub](https://hub.docker.com/r/apotdevin/thunderhub).
+
+<Callout type="warning">
+  Support for `linux/arm/v7` (32-bit ARM) was dropped in v0.15.0. The image also
+  runs as a **non-root user** — any mounted file must be readable by the
+  non-root user inside the container.
+</Callout>
+
+## Quickstart
+
+Pull the latest stable image and run it:
+
+```bash copy
+docker pull apotdevin/thunderhub:latest
+docker run --rm -it -p 3000:3000 apotdevin/thunderhub:latest
+```
+
+Open [http://localhost:3000](http://localhost:3000). At this point ThunderHub is running, but it has no node configured. Use one of the modes below to connect it.
+
+## Mode 1 — YAML accounts (single operator)
+
+Create a `thubConfig.yaml` next to your container and mount it in:
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'My Node'
+    serverUrl: '127.0.0.1:10009'
+    macaroonPath: '/lnd/admin.macaroon'
+    certificatePath: '/lnd/tls.cert'
+```
+
+```bash copy
+docker run -d \
+  --name thunderhub \
+  -p 3000:3000 \
+  -e ACCOUNT_CONFIG_PATH=/data/thubConfig.yaml \
+  -v $(pwd)/thubConfig.yaml:/data/thubConfig.yaml:ro \
+  -v $HOME/.lnd:/lnd:ro \
+  apotdevin/thunderhub:latest
+```
+
+<Callout type="info">
+  On macOS and Windows, point `serverUrl` at `host.docker.internal:10009` to
+  reach a node running on the host. On Linux, use the host's LAN IP or pass
+  `--network=host` to the `docker run` command.
+</Callout>
+
+Log in with the `masterPassword` from your YAML. The first time ThunderHub reads the file it replaces the cleartext passwords with bcrypt hashes — keep a backup if you need the original. See [YAML accounts](/accounts/yaml-config) for the full schema.
+
+## Mode 2 — Database users (multi-user, UI-driven)
+
+Set `DB_TYPE` and `DB_ENCRYPTION_KEY` and ThunderHub manages users, teams, and nodes in a database. No YAML required.
+
+```bash copy
+docker run -d \
+  --name thunderhub \
+  -p 3000:3000 \
+  -e DB_TYPE=sqlite \
+  -e DB_SQLITE_PATH=/data/thunderhub.db \
+  -e DB_ENCRYPTION_KEY=$(openssl rand -hex 32) \
+  -v thunderhub-data:/data \
+  apotdevin/thunderhub:latest
+```
+
+On the first open, ThunderHub shows a setup screen — create an owner user, then add nodes through the UI. Credentials are encrypted at rest with `DB_ENCRYPTION_KEY` (AES-256-GCM, 32-byte hex). See [Database users](/accounts/database-users).
+
+<Callout type="warning">
+  **Back up `DB_ENCRYPTION_KEY` somewhere safe.** Losing it makes every
+  encrypted node credential in the DB unrecoverable — you'd need to re-add each
+  node.
+</Callout>
+
+## Docker Compose
+
+For a longer-lived setup, prefer Compose:
+
+```yaml copy
+services:
+  thunderhub:
+    image: apotdevin/thunderhub:latest
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - DB_TYPE=sqlite
+      - DB_SQLITE_PATH=/data/thunderhub.db
+      - DB_ENCRYPTION_KEY=${DB_ENCRYPTION_KEY}
+    volumes:
+      - thunderhub-data:/data
+
+volumes:
+  thunderhub-data:
+```
+
+Put `DB_ENCRYPTION_KEY` in a `.env` file (Docker Compose reads it automatically) and run `docker compose up -d`.
+
+## Pin a version
+
+`latest` always tracks the newest release. For reproducible builds, pin a tag:
+
+```bash copy
+docker pull apotdevin/thunderhub:v0.18.4
+```
+
+The `base-latest` tag publishes the same code built with `BASE_PATH=/thub` for reverse-proxy users — see [Reverse proxy](/configure/reverse-proxy).
+
+## Updating
+
+```bash copy
+docker pull apotdevin/thunderhub:latest
+docker rm -f thunderhub
+docker run -d ...   # same flags as before
+```
+
+Volume contents (YAML, SQLite, Postgres) persist across recreations.

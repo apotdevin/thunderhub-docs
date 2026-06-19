@@ -1,0 +1,143 @@
+---
+title: YAML schema
+description: Field-by-field reference for thubConfig.yaml — top-level options and per-account fields.
+---
+
+ThunderHub parses the YAML at `ACCOUNT_CONFIG_PATH` via [`js-yaml`](https://www.npmjs.com/package/js-yaml). The source of truth is [`src/server/modules/files/files.types.ts`](https://github.com/apotdevin/thunderhub/blob/master/src/server/modules/files/files.types.ts) and the parser in `files.service.ts`.
+
+## Top-level
+
+| Field                       | Type   | Default    | Description                                                                                          |
+| --------------------------- | ------ | ---------- | ---------------------------------------------------------------------------------------------------- |
+| `masterPassword`            | string | (none)     | Optional. Used when an account omits its own `password`. bcryptjs-hashed in place on first boot.     |
+| `defaultNetwork`            | string | `mainnet`  | `mainnet`, `testnet`, `testnet4`, `signet`, or `regtest`. Used by the `lndDir` / `litDir` shorthand. |
+| `accounts`                  | array  | (required) | One or more account entries (see below).                                                             |
+| `backupsEnabled`            | bool   | `false`    | Enable static channel backup uploads (Amboss).                                                       |
+| `healthCheckPingEnabled`    | bool   | `false`    | Enable periodic health pings to Amboss.                                                              |
+| `onchainPushEnabled`        | bool   | `false`    | Push on-chain balance updates to Amboss.                                                             |
+| `channelPushEnabled`        | bool   | `false`    | Push channel balance updates to Amboss.                                                              |
+| `privateChannelPushEnabled` | bool   | `false`    | Include private channels in pushes.                                                                  |
+
+## Per-account fields
+
+```yaml
+accounts:
+  - name: 'Display Name'
+    type: lnd # 'lnd' (default) or 'litd'
+    serverUrl: 'host:port'
+    macaroon: '...' # one credential source required for lnd/litd
+    macaroonPath: '...'
+    lndDir: '...'
+    litDir: '...'
+    certificate: '...'
+    certificatePath: '...'
+    network: 'mainnet' # override defaultNetwork for this account
+    password: '...' # per-account password (or use masterPassword)
+    encrypted: false # treat macaroon as CryptoJS-AES-encrypted
+    twofaSecret: '...' # TOTP secret (written by the UI when enabling 2FA)
+    authToken: '...' # bearer token for non-gRPC providers
+```
+
+### Required fields
+
+| Field                                             | Required when                                                                                                          |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `name`                                            | Always.                                                                                                                |
+| `serverUrl`                                       | Always.                                                                                                                |
+| `macaroon` / `macaroonPath` / `lndDir` / `litDir` | At least one of these is required for `type: lnd` or `type: litd`. An account with none of them is skipped at startup. |
+| `password` (or top-level `masterPassword`)        | One of them is required. Without either, the account is skipped.                                                       |
+
+### Credential resolution
+
+`certificate` → `certificatePath` → `lndDir`/`litDir` → none (warned, account may still load if cert isn't needed).
+
+`macaroon` → `macaroonPath` → `lndDir` → `litDir` → fail.
+
+`lndDir` resolves to:
+
+- Cert: `<lndDir>/tls.cert`
+- Macaroon: `<lndDir>/data/chain/bitcoin/<network>/admin.macaroon`
+
+`litDir` resolves to:
+
+- Cert: `<litDir>/tls.cert`
+- Macaroon: `<litDir>/<network>/lit.macaroon`
+
+### Environment variable substitution
+
+Inside `accounts[]`, any field can reference `${YML_ENV_1}` through `${YML_ENV_4}`. Set the matching env vars in `.env.local`. Substitution does **not** apply to top-level fields.
+
+## Example: minimal
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'My Node'
+    serverUrl: '127.0.0.1:10009'
+    macaroonPath: '/lnd/admin.macaroon'
+    certificatePath: '/lnd/tls.cert'
+```
+
+## Example: Voltage (litd over HTTPS)
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'Voltage Mainnet'
+    type: litd
+    serverUrl: '<node-name>.m.voltageapp.io:443'
+    macaroonPath: '/data/voltage/superadmin.macaroon'
+```
+
+No `certificatePath` — Voltage uses a CA-signed cert.
+
+## Example: encrypted macaroon
+
+```yaml copy
+accounts:
+  - name: 'Encrypted Account'
+    serverUrl: 'url:port'
+    macaroon: 'U2FsdGVkX1...' # CryptoJS.AES.encrypt(...) output
+    encrypted: true
+```
+
+Login password is used as the AES passphrase. Requires `NODE_ENV=production`. See [Encrypted macaroons](/accounts/yaml-config#encrypted-macaroon).
+
+## Example: lndDir shorthand
+
+```yaml copy
+masterPassword: 'your-secure-password'
+defaultNetwork: 'mainnet'
+accounts:
+  - name: 'Local LND'
+    serverUrl: '127.0.0.1:10009'
+    lndDir: '/home/me/.lnd'
+  - name: 'Testnet LND'
+    serverUrl: '127.0.0.1:10010'
+    lndDir: '/home/me/.lnd-testnet'
+    network: 'testnet'
+```
+
+## Example: env-var substitution
+
+```yaml copy
+accounts:
+  - name: '${YML_ENV_1}'
+    serverUrl: '${YML_ENV_2}'
+    macaroon: '${YML_ENV_3}'
+```
+
+```bash copy
+YML_ENV_1='My Node'
+YML_ENV_2='node.example.com:443'
+YML_ENV_3='0201036c6e64...'
+```
+
+## What ThunderHub writes back
+
+ThunderHub overwrites the YAML in two cases:
+
+1. **Password hashing** — on first boot, any cleartext `masterPassword` or per-account `password` is replaced with a bcrypt hash prefixed with `thunderhub-`. The cleartext is gone.
+2. **2FA secret** — when an operator enables 2FA in the UI, ThunderHub writes the TOTP secret back as `twofaSecret` for that account.
+
+Everything else is read-only.

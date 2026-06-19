@@ -1,95 +1,57 @@
 ---
 title: Introduction
-description: ThunderHub is an open-source Lightning Network node manager with a web-based interface to monitor and manage your LND or litd node.
+description: ThunderHub is an open-source web manager for Lightning Network nodes — connect to LND or Lightning Terminal (litd) and manage channels, payments, Taproot Assets, and trading from one interface.
 ---
 
-![Home Screenshot](/assets/index_home.png)
+![ThunderHub home screenshot](/assets/index_home.png)
 
 [![license](https://img.shields.io/github/license/apotdevin/thunderhub.svg?style=flat-square)](https://github.com/apotdevin/thunderhub/blob/master/LICENSE)
 
-## Introduction
-
-ThunderHub is an open-source Lightning Network node manager. It provides a web-based interface to monitor and manage your LND or [Lightning Terminal (litd)](/litd) node from any device or browser.
-
-## Integrations
-
-ThunderHub is integrated into several popular node platforms:
-
-- **[BTCPay Server](https://apotdevin.com/blog/thunderhub-btcpay)** — Included as part of the BTCPay Server deployment stack.
-- **[Raspiblitz](https://gist.github.com/openoms/8ba963915c786ce01892f2c9fa2707bc)** — Available as an optional service on Raspiblitz nodes.
-- **[myNode](https://mynodebtc.github.io/lightning/thunderhub.html)** — Bundled with the myNode software suite.
-- **[Voltage](https://docs.voltage.cloud/thunderhub-guide)** — Available on Voltage's hosted Lightning node platform.
-- **[Umbrel](https://getumbrel.com/)** — Installable from the Umbrel App Store.
+ThunderHub is an open-source web interface for Lightning Network node operators. Point it at an [LND](https://github.com/lightningnetwork/lnd) or [Lightning Terminal (litd)](https://docs.lightning.engineering/lightning-network-tools/lightning-terminal/get-lit) node and get channel management, payments, on-chain operations, [Taproot Assets](https://docs.lightning.engineering/the-lightning-network/taproot-assets), and Magma-powered asset trading — from any browser.
 
 ## Features
 
-### Monitoring
+| Area               | What you get                                                                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Monitor**        | Balances (Lightning + on-chain), node URI with Tor address, invoice/payment/forward graphs, channel list with policies, transaction history, UTXOs, network info.        |
+| **Manage**         | Send and receive Lightning + on-chain, open/close channels, bulk-update fees, circular rebalancing, channel backups, sign/verify messages, LNURL, macaroon bakery.       |
+| **Taproot Assets** | List, mint, burn, send, receive, asset invoices, universe sync, federation management, per-channel asset balances.                                                       |
+| **Trade**          | Magma RFQ orders — buy and sell Taproot Assets with multi-hop circular rebalancing, pending channel tracking, per-channel notes.                                         |
+| **Secure**         | TOTP 2FA, AES-encrypted macaroons, bcrypt-hashed YAML passwords, Argon2-hashed DB users, AES-256-GCM at-rest encryption for DB-stored node credentials, SSO cookie auth. |
+| **Interface**      | Responsive UI for mobile / tablet / desktop, light + dark themes, satoshi / BTC / fiat display, customizable dashboard.                                                  |
 
-- Balance overview for Lightning and on-chain wallets (current and pending).
-- Node URI strings including Tor onion addresses.
-- Invoice, payment, and forwarding graphs.
-- Liquidity report showing total remote and local channel balance.
-- Channel list with balance indicators (open, pending, and closed).
-- Fee policies per channel (base fee and fee rate).
-- Transaction history, chain transactions, and UTXO list.
-- Network information overview.
+## How you can connect
 
-### Management
+ThunderHub supports three login modes that can be mixed in a single deployment:
 
-- Send and receive Lightning payments.
-- Send and receive on-chain Bitcoin.
-- Open and close channels.
-- Decode payment requests.
-- Update channel fees (individually or in bulk).
-- Channel rebalancing via circular payments.
-- Channel backup, verification, and recovery.
-- Sign and verify messages.
-- LNURL support (lnurl-pay, lnurl-withdraw).
-- Macaroon management.
+| Mode               | Best for                                     | Where credentials live                                         |
+| ------------------ | -------------------------------------------- | -------------------------------------------------------------- |
+| **YAML accounts**  | Single-operator self-hosters                 | A `thubConfig.yaml` file on disk                               |
+| **Database users** | Multi-user setups, UI-driven node management | SQLite or Postgres with AES-256-GCM-encrypted node credentials |
+| **LiT SSO**        | Inside Lightning Terminal's UI               | Macaroon + cookie from the LiT process                         |
 
-### Taproot Assets
+See [Accounts](/accounts) for the full picture.
 
-- Mint, burn, and transfer Taproot Assets.
-- Create invoices denominated in Taproot Assets.
-- Asset universe management and federation.
-- Trading offers for asset exchange.
-- View asset balances and transfer history.
+## Tech stack
 
-### Swaps
+ThunderHub is a TypeScript monorepo. The server is a [NestJS](https://nestjs.com/) 11 app that exposes a GraphQL API and talks to your node over gRPC. The client is a [React](https://react.dev/) 18 + [Vite](https://vitejs.dev/) SPA styled with [Tailwind](https://tailwindcss.com/) v4 and shadcn/ui. Optional persistence runs on [Drizzle ORM](https://orm.drizzle.team/) backed by SQLite or PostgreSQL.
 
-- Submarine swaps and reverse swaps via [Boltz](https://boltz.exchange/).
+Docker images for `linux/amd64` and `linux/arm64` are published to [Docker Hub](https://hub.docker.com/r/apotdevin/thunderhub). A ready-to-deploy [`fly.toml`](https://fly.io) ships in the repo.
 
-### Security
+## Where to go next
 
-- Two-factor authentication (2FA) with TOTP.
-- AES-encrypted macaroon support.
-- Password hashing (cleartext passwords are never stored).
-- SSO cookie-based authentication.
+- **[Get Started](/get-started)** — Install ThunderHub via Docker, from source, on Fly.io, or connect it to Voltage.
+- **[Accounts](/accounts)** — Decide how operators log in and how nodes are connected.
+- **[Configure](/configure)** — Server, database, security, and reverse-proxy settings.
+- **[Taproot Assets](/taproot-assets)** — Mint, transfer, and trade assets via Magma RFQ.
+- **[Reference](/reference/env-vars)** — Every environment variable and YAML field, grouped.
 
-### Interface
+## Integrations
 
-- Responsive design for mobile, tablet, and desktop.
-- Light and dark themes.
-- Display values in satoshis, BTC, or fiat currencies.
-- Customizable dashboard layout.
+ThunderHub is shipped by several node platforms out of the box:
 
-### Accounts
-
-- Connect via macaroon file paths or HEX/Base64 strings.
-- Manage multiple nodes from a single instance.
-- Master password or per-account passwords.
-- Optional database-backed user accounts with team support (SQLite or PostgreSQL).
-
-## Tech Stack
-
-ThunderHub is a full-stack TypeScript application with a NestJS backend serving a GraphQL API and a React frontend. It connects to Lightning Network nodes via gRPC.
-
-- **Backend** — NestJS, GraphQL (Apollo Server), Drizzle ORM
-- **Frontend** — React, Vite, Tailwind CSS, Apollo Client
-- **Language** — TypeScript
-
-### Deployment
-
-- Docker images available on [Docker Hub](https://hub.docker.com/r/apotdevin/thunderhub).
-- Reverse proxy support with configurable base path.
-- Tor proxy support for outbound requests.
+- **[BTCPay Server](https://apotdevin.com/blog/thunderhub-btcpay)** — Included in the BTCPay deployment stack.
+- **[Raspiblitz](https://gist.github.com/openoms/8ba963915c786ce01892f2c9fa2707bc)** — Optional service on Raspiblitz.
+- **[myNode](https://mynodebtc.github.io/lightning/thunderhub.html)** — Bundled with myNode.
+- **[Voltage](https://docs.voltage.cloud/thunderhub-guide)** — Available on Voltage's hosted node platform.
+- **[Umbrel](https://getumbrel.com/)** — Installable from the Umbrel App Store.

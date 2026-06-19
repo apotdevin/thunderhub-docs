@@ -1,0 +1,92 @@
+---
+title: Magma trading
+description: Buy and sell Taproot Assets with RFQ orders, multi-hop swaps, and per-channel notes.
+---
+
+Magma is Amboss's peer-to-peer Taproot Assets trading layer. ThunderHub exposes it directly so you can:
+
+- **Buy** assets — request a quote from a peer, pay BTC, receive assets atomically.
+- **Sell / offer** assets — list assets for sale, accept incoming buy requests.
+- **Track orders** — pending channels, fills, and cancellations end up in the trade dashboard.
+
+Magma uses Taproot Asset **RFQ (Request For Quote)**: you tell a peer "I want N units of asset X," the peer quotes a rate, and tapd checks the quote against your configured [price oracle](/taproot-assets/price-oracle) before accepting.
+
+## Prerequisites
+
+- A litd account in ThunderHub (`type: litd`). See [Connect to litd](/accounts/litd) or [Voltage](/get-started/voltage).
+- A configured **price oracle** — without one, tapd rejects all trades. See [Price oracle](/taproot-assets/price-oracle).
+- BTC liquidity in a channel for buy orders, or asset liquidity for sell orders.
+
+## Buy flow
+
+<Steps>
+
+### Pick an offer
+
+In ThunderHub's Magma view, browse listed offers from connected peers or paste a specific peer's offer URL. Each offer states the asset, the rate, the size bounds, and the peer's pubkey.
+
+### Request a quote
+
+ThunderHub sends an RFQ to the peer asking for a price on the size you want. The peer's tapd answers with a signed quote (asset → BTC rate, expiry).
+
+### Accept and execute
+
+If the quote checks out against your price oracle, you can accept. ThunderHub:
+
+1. Builds the asset invoice using the quote.
+2. Pays it through a multi-hop circular rebalance — funds flow out of your BTC channels, through the network, into your asset channel with the peer.
+3. Confirms receipt of the assets and updates balances.
+
+Since v0.18.0, the multi-hop swap can route through multiple intermediate channels (circular rebalancing) when no direct channel exists. The pending state is visible under **Channels → Pending** while the swap is in flight.
+
+</Steps>
+
+## Sell / offer flow
+
+<Steps>
+
+### Create an offer
+
+In the Magma view, create an offer — asset, available amount, and pricing. The offer is published to peers Amboss knows about.
+
+### Wait for buyers
+
+When a peer requests a quote against your offer, your tapd quotes them back. The quote uses your price oracle to check the proposed rate, so quotes outside your acceptable margin are rejected automatically.
+
+### Execute the trade
+
+The buyer pays the asset invoice. ThunderHub auto-opens a **private asset channel** for the trade (the buyer's node and yours), routes the payment, and credits the BTC to your channel.
+
+</Steps>
+
+## Tracking orders
+
+The Magma view groups orders by state:
+
+- **Open** — your active offers and unresolved RFQs.
+- **Pending** — orders mid-execution; pending channels show under **Channels → Pending** with asset balances.
+- **Filled** — completed trades.
+- **Cancelled** — orders you cancelled or that timed out.
+
+You can filter by source node when ThunderHub has multiple accounts configured — handy when one node is mainnet and another is mutinynet.
+
+## Per-channel notes
+
+Each channel (active or pending) has an inline note field. Use them to label which channel belongs to which Magma order, what the counterparty pubkey corresponds to, or any other operational context. Notes live in the `channel_metadata` table when the [database](/configure/database) is enabled.
+
+Click the note icon next to a channel row to edit; changes save immediately.
+
+## On-chain liquidity safeguard
+
+Buying assets routes through your BTC channels. ThunderHub keeps a configurable reserve on-chain so a single large trade doesn't drain the wallet. The safeguard is enforced by tapd in v0.16.0+; ThunderHub surfaces a warning in the UI when a trade would dip below the reserve.
+
+## Troubleshooting
+
+- **"Quote rejected: price out of range"** — your tapd's price oracle disagrees with the counterparty's rate. Either accept the difference by setting [`skipquoteacceptverify`](/taproot-assets/price-oracle#disable-price-checks-not-recommended) (risky), or wait for a better quote.
+- **"No price oracle configured"** — set one in `lit.conf` and restart litd. See [Price Oracle](/taproot-assets/price-oracle).
+- **Multi-hop swap fails** — circular rebalance requires enough liquidity along the path. Check your channel balances; consider rebalancing first.
+- **Asset channel stuck in pending** — confirm the underlying BTC channel has 3+ confirmations. The asset channel state is layered on top of the BTC channel.
+
+## Reference
+
+The GraphQL surface for trading lives in [`src/server/modules/api/trade/`](https://github.com/apotdevin/thunderhub/tree/master/src/server/modules/api/trade) (quotes, execution) and [`src/server/modules/api/magma/`](https://github.com/apotdevin/thunderhub/tree/master/src/server/modules/api/magma) (offers, orders, pending state).

@@ -1,0 +1,215 @@
+---
+title: YAML accounts
+description: Define ThunderHub accounts in a YAML file — schema, credential resolution, encryption, and env-var substitution.
+---
+
+YAML accounts are the original login mode. ThunderHub reads a config file at `ACCOUNT_CONFIG_PATH` on boot, builds a gRPC connection for each entry, and shows them on the login screen. Each account has its own password (or shares a master password).
+
+## Pointing ThunderHub at the file
+
+Set the path via environment variable:
+
+```bash copy
+ACCOUNT_CONFIG_PATH='/path/to/thubConfig.yaml'
+```
+
+In Docker, mount the file in and point `ACCOUNT_CONFIG_PATH` at the in-container location:
+
+```bash copy
+docker run -d \
+  -e ACCOUNT_CONFIG_PATH=/data/thubConfig.yaml \
+  -v $(pwd)/thubConfig.yaml:/data/thubConfig.yaml:ro \
+  ...
+```
+
+## Minimal config
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'My Node'
+    serverUrl: '127.0.0.1:10009'
+    macaroonPath: '/lnd/admin.macaroon'
+    certificatePath: '/lnd/tls.cert'
+```
+
+Log in with `your-secure-password` and pick **My Node** from the list.
+
+## Schema
+
+### Top level
+
+| Field            | Type   | Notes                                                                                           |
+| ---------------- | ------ | ----------------------------------------------------------------------------------------------- |
+| `masterPassword` | string | Optional. Used when an account has no `password`. Hashed in place on first boot.                |
+| `defaultNetwork` | string | `mainnet` (default), `testnet`, `testnet4`, `signet`, or `regtest`. Used by `lndDir` shorthand. |
+| `accounts`       | array  | One or more account entries (see below).                                                        |
+
+Other top-level booleans (`backupsEnabled`, `healthCheckPingEnabled`, `onchainPushEnabled`, etc.) are documented in [YAML schema reference](/reference/yaml-schema).
+
+### Per-account fields
+
+| Field             | Type    | Required?                                              | Description                                                                                         |
+| ----------------- | ------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `name`            | string  | ✅                                                     | Display name on the login screen.                                                                   |
+| `serverUrl`       | string  | ✅                                                     | `host:port` of the gRPC endpoint. Use `10009` for LND/litd, `443` for Voltage.                      |
+| `type`            | string  | Defaults to `lnd`                                      | `lnd` or `litd`. Set `litd` to expose Taproot Assets in the UI.                                     |
+| `macaroon`        | string  | One of these credential sources is needed for LND/litd | Hex-encoded macaroon (or AES-encrypted string if `encrypted: true`).                                |
+| `macaroonPath`    | string  | ⮑                                                      | Path to a binary `*.macaroon` file. Hex on disk if `encrypted: true`.                               |
+| `lndDir`          | string  | ⮑                                                      | Path to a full LND data dir. Resolves `tls.cert` and `admin.macaroon` automatically.                |
+| `litDir`          | string  | ⮑                                                      | Path to a litd data dir. Resolves `tls.cert` and `lit.macaroon`.                                    |
+| `certificate`     | string  | Optional                                               | Inline PEM-encoded TLS cert.                                                                        |
+| `certificatePath` | string  | Optional                                               | Path to a PEM TLS cert file.                                                                        |
+| `network`         | string  | Optional                                               | Override the top-level `defaultNetwork` for this account.                                           |
+| `password`        | string  | Optional                                               | Per-account password. If absent, ThunderHub uses `masterPassword`. Hashed in place on first boot.   |
+| `encrypted`       | boolean | Optional                                               | If `true`, treat `macaroon` as a CryptoJS AES-encrypted string and decrypt with the login password. |
+| `twofaSecret`     | string  | Optional                                               | TOTP secret. ThunderHub writes this when you enable 2FA in the UI.                                  |
+| `authToken`       | string  | Optional                                               | Bearer token for non-gRPC providers.                                                                |
+
+For LND/litd accounts, **at least one of** `macaroon`, `macaroonPath`, `lndDir`, or `litDir` must be set. Without it, the account is skipped at startup.
+
+## Examples
+
+### Local LND
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'Local LND'
+    serverUrl: '127.0.0.1:10009'
+    macaroonPath: '/home/me/.lnd/data/chain/bitcoin/mainnet/admin.macaroon'
+    certificatePath: '/home/me/.lnd/tls.cert'
+```
+
+### LND data-dir shorthand
+
+```yaml copy
+masterPassword: 'your-secure-password'
+defaultNetwork: 'mainnet'
+accounts:
+  - name: 'My Node'
+    serverUrl: 'url:port'
+    lndDir: '/home/me/.lnd'
+  - name: 'Testnet Node'
+    serverUrl: 'url:port'
+    lndDir: '/home/me/.lnd-testnet'
+    network: 'testnet'
+```
+
+`lndDir` resolves:
+
+- Certificate → `<lndDir>/tls.cert`
+- Macaroon → `<lndDir>/data/chain/bitcoin/<network>/admin.macaroon`
+
+`litDir` resolves `<litDir>/tls.cert` and `<litDir>/<network>/lit.macaroon`.
+
+<Callout type="warning">
+  `lndDir` / `litDir` only work when the files are readable from where
+  ThunderHub runs — not for nodes on remote hosts. Use `macaroon` / `cert`
+  strings or `macaroonPath` / `certificatePath` instead for remote nodes.
+</Callout>
+
+### Voltage (litd over HTTPS)
+
+```yaml copy
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'Voltage Mainnet'
+    type: litd
+    serverUrl: '<node-name>.m.voltageapp.io:443'
+    macaroonPath: '/data/voltage/superadmin.macaroon'
+```
+
+No `certificatePath` — Voltage uses a CA-signed cert. Full walkthrough: [Voltage](/get-started/voltage).
+
+### Inline hex credentials
+
+```yaml copy
+accounts:
+  - name: 'Inline Credentials'
+    serverUrl: 'remote.example.com:10009'
+    macaroon: '0201036c6e6402...'
+    certificate: |
+      -----BEGIN CERTIFICATE-----
+      MIIB6jCC...
+      -----END CERTIFICATE-----
+```
+
+### Encrypted macaroon
+
+Encrypt a macaroon once with CryptoJS AES (any JS REPL or quick script):
+
+```js copy
+const encrypted = CryptoJS.AES.encrypt(
+  'HEX or Base64 encoded macaroon',
+  'secret passphrase'
+).toString();
+```
+
+Then:
+
+```yaml copy
+accounts:
+  - name: 'Encrypted Account'
+    serverUrl: 'url:port'
+    macaroon: 'U2FsdGVkX19...' # CryptoJS-encrypted string
+    encrypted: true
+```
+
+At login, use the **same passphrase** that encrypted the macaroon — ThunderHub decrypts it in memory only.
+
+<Callout type="warning">
+  Encrypted accounts only work in a **production** build
+  (`NODE_ENV=production`). The dev server clears decrypted state on every
+  restart and the login will fail.
+</Callout>
+
+### Environment variable substitution
+
+Account fields can reference up to four placeholder env vars:
+
+```yaml copy
+accounts:
+  - name: '${YML_ENV_1}'
+    serverUrl: '${YML_ENV_2}'
+    macaroon: '${YML_ENV_3}'
+    certificate: '${YML_ENV_4}'
+```
+
+Set them in `.env.local`:
+
+```bash copy
+YML_ENV_1='My Node'
+YML_ENV_2='bps.example.com:443'
+YML_ENV_3='0201036c6e64...'
+```
+
+Substitution only happens inside `accounts[]` — not for top-level fields like `masterPassword`.
+
+## Password handling
+
+On first boot, ThunderHub bcrypt-hashes any cleartext `masterPassword` / `password` in the YAML and rewrites the file with the hashed values. So if you check this file into git, the cleartext password is gone after the first run. Keep your own backup of the cleartext until you've verified login works.
+
+You can also force a single master password from outside the file:
+
+```bash copy
+MASTER_PASSWORD_OVERRIDE='secretPasswordForAllAccounts'
+```
+
+The override is hashed at boot and used for every account that doesn't have its own `password`. See [Security](/configure/security) for more on encrypted macaroons, 2FA, and password rotation.
+
+## Remote LND access
+
+To connect to LND on another host, expose its gRPC port and add the external address to `lnd.conf` so the TLS cert covers it:
+
+```ini copy
+# By IP address
+tlsextraip=<external-ip>
+rpclisten=0.0.0.0:10009
+
+# Or by domain
+tlsextradomain=node.example.com
+rpclisten=0.0.0.0:10009
+```
+
+Restart LND to regenerate the cert, then copy the new `tls.cert` and macaroon to the host that runs ThunderHub.

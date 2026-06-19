@@ -1,0 +1,99 @@
+---
+title: Configuration
+description: Tune ThunderHub's server, interface, privacy, and subscription behavior with environment variables.
+---
+
+ThunderHub reads its configuration from environment variables. Put them in `.env.local` (committed defaults live in `.env`) or pass them to the Docker container with `-e`. This page covers the runtime toggles; for the full list including auth and database, see the [env var reference](/reference/env-vars).
+
+<Callout type="info">
+  If you started from the `.env` template, copy what you want to change into
+  `.env.local` so updates won't overwrite your settings.
+</Callout>
+
+## Server
+
+```bash copy
+LOG_LEVEL='info'           # silly | debug | verbose | http | info | warn | error
+LOG_JSON=false             # true → emit JSON lines (useful for log aggregators)
+NODE_ENV='production'      # affects JWT secret, HTTPS hints, encrypted-macaroon support
+PORT=3000                  # HTTP port (dev default is 3001)
+HOST='0.0.0.0'             # bind address
+USE_HTTPS=false            # set true when fronted by HTTPS — tightens Helmet CSP, marks cookies secure
+BASE_PATH=''               # URL prefix when behind a reverse proxy (e.g. '/thub')
+TOR_PROXY_SERVER=''        # SOCKS5 proxy for outbound calls, e.g. 'socks://127.0.0.1:9050'
+```
+
+`BASE_PATH` and `USE_HTTPS` need to be set **before** building the client. See [Reverse proxy](/configure/reverse-proxy).
+
+## Interface defaults
+
+```bash copy
+THEME='dark'               # 'dark' | 'light'
+CURRENCY='sat'             # 'sat' | 'btc' | fiat code
+```
+
+These are starting defaults — each user can change them from the Settings page once logged in.
+
+## Privacy
+
+ThunderHub pulls a few things from external APIs by default. Each can be turned off:
+
+| Service                                                                                  | What ThunderHub pulls                | Disable with             |
+| ---------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------ |
+| [Mempool.space](https://mempool.space/) (override with `MEMPOOL_URL`)                    | On-chain fee estimates, block height | `FETCH_FEES=false`       |
+| [blockchain.info ticker](https://blockchain.info/ticker)                                 | BTC fiat exchange rates              | `FETCH_PRICES=false`     |
+| [GitHub Releases API](https://api.github.com/repos/apotdevin/thunderhub/releases/latest) | Latest-version check                 | `NO_VERSION_CHECK=true`  |
+| [LnMarkets](https://lnmarkets.com/)                                                      | LN Markets integration               | `DISABLE_LNMARKETS=true` |
+| External links in UI                                                                     | Block explorers, node directories    | `DISABLE_LINKS=true`     |
+
+Each of these can also be flipped from the in-app settings.
+
+## Real-time subscriptions
+
+ThunderHub opens long-lived LND streams to power the dashboard's live data. Each stream can be disabled individually if the node can't keep them open, or all at once:
+
+```bash copy
+DISABLE_ALL_SUBS=false
+DISABLE_INVOICE_SUB=false
+DISABLE_PAYMENT_SUB=false
+DISABLE_FORWARD_SUB=false
+DISABLE_CHANNEL_SUB=false
+DISABLE_BACKUP_SUB=false
+```
+
+`DISABLE_ALL_SUBS=true` is the lightest option — the UI will still work but updates require a manual refresh.
+
+## Amboss integration
+
+The Amboss integration runs a periodic health check and pushes balance updates. Two independent toggles:
+
+```bash copy
+DISABLE_HEALTHCHECK_PINGS=false   # stop periodic health pings to Amboss
+DISABLE_BALANCE_PUSHES=false      # stop on-chain / channel balance pushes
+```
+
+## Rate limiting
+
+ThunderHub puts NestJS Throttler in front of the public auth endpoints. The defaults are conservative:
+
+```bash copy
+THROTTLE_TTL=10            # window in seconds
+THROTTLE_LIMIT=10          # requests per window
+```
+
+Increase these if your environment proxies many requests through one IP (e.g. a corporate NAT). Decrease them if you're worried about brute-force on the login endpoint.
+
+## Mempool source
+
+```bash copy
+MEMPOOL_URL='https://mempool.space'
+```
+
+Point this at a self-hosted [mempool.space](https://github.com/mempool/mempool) instance if you'd rather not hit the public API. ThunderHub derives the fee and block-height endpoints from this base.
+
+## Next steps
+
+- **[Database](/configure/database)** — turn on multi-user mode with SQLite or Postgres.
+- **[Security](/configure/security)** — 2FA, encrypted macaroons, throttling.
+- **[Reverse proxy](/configure/reverse-proxy)** — `BASE_PATH`, HTTPS, NGINX, Tor.
+- **[Env var reference](/reference/env-vars)** — every variable in one place.

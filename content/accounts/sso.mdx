@@ -1,0 +1,68 @@
+---
+title: LiT SSO
+description: Authenticate via a Lightning Terminal cookie + macaroon — including multi-SSO setups and the dev-only bypass.
+---
+
+LiT SSO lets a node platform (BTCPay Server, Umbrel, or LiT itself) hand ThunderHub a cookie file and a macaroon directory. The user clicks one link, ThunderHub reads the cookie and macaroon, validates against the LiT process, and issues a session — no password screen.
+
+## Configure
+
+```bash copy
+COOKIE_PATH='/path/to/cookie/.cookie'
+
+SSO_SERVER_URL='127.0.0.1:10009'
+SSO_CERT_PATH='/path/to/tls.cert'
+SSO_MACAROON_PATH='/path/to/folder/containing/admin.macaroon'
+SSO_NODE_TYPE='lnd'              # 'lnd' or 'litd'
+
+LOGOUT_URL='https://example.com/logout'    # optional redirect on logout
+```
+
+ThunderHub reads `admin.macaroon` from `SSO_MACAROON_PATH` (the folder, not the file), opens a gRPC connection to `SSO_SERVER_URL` with the cert at `SSO_CERT_PATH`, and registers a special `sso` account.
+
+## How login works
+
+The platform redirects users to:
+
+```
+http://thunderhub.example.com/sso?token=<contents of cookie file>
+```
+
+ThunderHub reads the cookie file at `COOKIE_PATH`, compares it byte-for-byte to the `token` query, and on match issues a JWT cookie. To prevent re-use, ThunderHub then writes a fresh random value to `COOKIE_PATH` so the next login needs a new token from the platform.
+
+## Multi-SSO
+
+For platforms that need to switch between several LiT nodes from one ThunderHub instance, enable multi-SSO:
+
+```bash copy
+MULTI_SSO=true
+```
+
+The login surface lets the user pick which SSO account to use. Each backing account is still defined by the same `SSO_SERVER_URL` / `SSO_CERT_PATH` / `SSO_MACAROON_PATH` triplet — the multi-SSO surface is for switching between separately-configured SSO endpoints.
+
+## Dev-only bypass
+
+```bash copy
+DANGEROUS_NO_SSO_AUTH=true
+```
+
+With this flag, ThunderHub skips the cookie check and issues a session for any request to `/sso?token=1`. The cookie file is no longer required.
+
+<Callout type="error">
+  Only set this when ThunderHub is reachable **exclusively** over localhost,
+  Tor, or a closed LAN. With this flag and any public exposure, anyone who can
+  reach the URL controls your node and its funds.
+</Callout>
+
+The DEV bypass also requires `SSO_SERVER_URL` / `SSO_CERT_PATH` / `SSO_MACAROON_PATH` so ThunderHub can connect to the node — only the cookie comparison is skipped.
+
+## Logout
+
+When `LOGOUT_URL` is set, ThunderHub redirects the user there after they log out. Useful when the SSO platform has its own session and you want the logout to flow through it. Leave it empty for the default behavior (back to the login screen).
+
+## Troubleshooting
+
+- **Login link returns the login screen** — the cookie file at `COOKIE_PATH` doesn't match the `token` query. Re-issue the link from the platform; ThunderHub rotates the cookie on every successful login.
+- **`UnableToConnectToThisNode`** — `SSO_SERVER_URL`, `SSO_CERT_PATH`, or `SSO_MACAROON_PATH` is wrong. Verify the LiT gRPC endpoint is reachable from the ThunderHub host.
+- **`No SSO account available`** — none of the SSO env vars are set, so ThunderHub didn't register the `sso` account. Set all four and restart.
+- **Cookie file is empty** — ThunderHub creates one at the path if missing, so the directory needs to be writable.

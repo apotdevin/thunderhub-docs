@@ -1,0 +1,94 @@
+---
+title: Workflow
+description: Mint a Taproot Asset, finalize the batch, and federate universes between two litd nodes.
+---
+
+This walkthrough runs an asset between two litd nodes end-to-end. It uses `tapcli` so you can verify the mechanics on the command line; once everything lines up, the same operations are reachable from the ThunderHub UI for any litd node you've connected.
+
+The commands below assume the [developer environment](/developer/local-environment) is running — `litd-alice` (public universe) and `litd-bob` exposed via Docker Compose.
+
+## 1. Mint an asset
+
+```bash copy
+# Mint 1000 units of "Thunderbux" on Alice
+docker compose exec litd-alice tapcli \
+  --tlscertpath=/root/.lit/tls.cert \
+  --macaroonpath=/root/.lit/regtest/super.macaroon \
+  --rpcserver=localhost:8443 \
+  assets mint \
+    --type normal \
+    --name Thunderbux \
+    --supply 1000 \
+    --new_grouped_asset
+```
+
+Then finalize the mint batch:
+
+```bash copy
+docker compose exec litd-alice tapcli \
+  --tlscertpath=/root/.lit/tls.cert \
+  --macaroonpath=/root/.lit/regtest/super.macaroon \
+  --rpcserver=localhost:8443 \
+  assets mint finalize
+```
+
+Confirm the mint transaction by mining 6 blocks to one of Alice's addresses:
+
+```bash copy
+docker compose exec bitcoind bitcoin-cli \
+  -regtest -rpcuser=rpcuser -rpcpassword=rpcpassword \
+  generatetoaddress 6 \
+  $(docker compose exec litd-alice lncli --network=regtest newaddress p2wkh | jq -r '.address')
+```
+
+In ThunderHub (Alice on `http://localhost:3000`), the new asset shows up under **Taproot Assets** with the minted supply.
+
+## 2. Federate universes
+
+For Bob to receive Thunderbux from Alice, Bob's tapd needs to know about Alice's universe. Federate in both directions so both nodes can issue and receive asset invoices for each other.
+
+```bash copy
+# Add Alice's universe to Bob
+docker compose exec litd-bob tapcli \
+  --tlscertpath=/root/.lit/tls.cert \
+  --macaroonpath=/root/.lit/regtest/super.macaroon \
+  --rpcserver=localhost:8443 \
+  universe federation add \
+    --universe_host=litd-alice:8443
+
+# Add Bob's universe to Alice
+docker compose exec litd-alice tapcli \
+  --tlscertpath=/root/.lit/tls.cert \
+  --macaroonpath=/root/.lit/regtest/super.macaroon \
+  --rpcserver=localhost:8443 \
+  universe federation add \
+    --universe_host=litd-bob:8443
+```
+
+Both ThunderHub UIs now show each other's assets in the universe listing.
+
+## 3. Asset channels
+
+To pay asset invoices over Lightning, you need a Lightning channel between the two nodes that's been "tap-aware". The [developer environment](/developer/local-environment) walks through opening a vanilla 1M-sat channel between Alice and Bob; tapd then layers asset channel state on top of that channel.
+
+In ThunderHub, the **Channels** view shows asset balances inside each channel (active + pending), and Magma trade orders auto-open private asset channels with the counterparty when an order is accepted — see [Magma trading](/taproot-assets/magma-trading).
+
+## 4. Doing it from the UI
+
+Everything above is doable from the ThunderHub UI once a litd account is connected:
+
+- **Mint** — Taproot Assets → Mint button. Fill in name, supply, decimals, type (normal or collectible), and whether to start a new asset group.
+- **Send / Receive** — Asset detail view → Send / Receive. Receive generates a TA address; Send takes a peer's address and a quantity.
+- **Federate** — Universe view → Add Federation, paste the peer's `host:port`.
+- **Invoices** — Asset detail view → Create Invoice. Goes through the RFQ flow to set the asset-to-BTC rate.
+
+The UI calls the same `tapd` GraphQL resolvers (`src/server/modules/api/tapd/`) that wrap the `tapcli` operations above.
+
+## Cleanup
+
+Same as the developer environment cleanup:
+
+```bash copy
+docker compose down
+rm -rf data/        # only if you want to wipe minted assets
+```

@@ -1,0 +1,110 @@
+---
+title: Security
+description: 2FA, encrypted macaroons, password handling, throttling, and master-password override.
+---
+
+ThunderHub layers a few safety nets on top of node credentials. Pick the ones that match your threat model.
+
+## Two-factor authentication
+
+ThunderHub supports TOTP-based 2FA per YAML account. Enable it from the user menu — the UI shows a QR code, you scan it into an authenticator app, and ThunderHub writes the secret back to the YAML file via the `twofaSecret` field.
+
+After 2FA is on, the login screen asks for the token alongside the password.
+
+### Disable 2FA globally
+
+```bash copy
+DISABLE_TWOFA=true
+```
+
+Setting this skips the TOTP verification at login even if accounts have a `twofaSecret`. Useful as an emergency override when an operator loses their authenticator app — and a clear signal that you should reset the secret afterwards.
+
+<Callout type="warning">
+  `DISABLE_TWOFA=true` is an *anyone can log in with just the password* switch.
+  Don't leave it on once you've recovered access.
+</Callout>
+
+Database users don't currently use TOTP — DB authentication is email + Argon2 password.
+
+## Password hashing
+
+- **YAML accounts** — bcryptjs hashes both `masterPassword` and per-account `password`. On first boot, ThunderHub rewrites the YAML in place with the hashed values (prefixed with `thunderhub-`). The cleartext is gone after that.
+- **Database users** — passwords go through `@node-rs/argon2` (`hash()`). Stored as `password_hash` on the `users` table.
+
+## Master-password override
+
+For deployments where you'd rather not put a password in the YAML at all:
+
+```bash copy
+MASTER_PASSWORD_OVERRIDE='secret-master-password'
+```
+
+ThunderHub hashes the override at boot and uses it for every YAML account that doesn't have its own `password`. The override beats the YAML's own `masterPassword`.
+
+Treat this like any other secret — Docker secrets, Fly secrets, etc. The benefit is that the YAML file can stay password-free.
+
+## Encrypted macaroons
+
+If you don't want plaintext macaroons in the YAML, encrypt each one with [CryptoJS](https://www.npmjs.com/package/crypto-js) AES and mark the account `encrypted: true`. ThunderHub decrypts the macaroon in memory the first time you log in (using the account password as the passphrase) — nothing decrypted ever hits disk.
+
+```yaml copy
+accounts:
+  - name: 'Encrypted'
+    serverUrl: 'url:port'
+    macaroon: 'U2FsdGVkX19...' # output from CryptoJS.AES.encrypt(...)
+    encrypted: true
+```
+
+Full walkthrough in [YAML accounts → Encrypted macaroon](/accounts/yaml-config#encrypted-macaroon).
+
+<Callout type="info">
+  Encrypted macaroons only work in production (`NODE_ENV=production`). The dev
+  server clears decrypted state on every restart, which breaks the in-memory
+  flow.
+</Callout>
+
+## At-rest encryption for DB nodes
+
+When the [database](/configure/database) is enabled, node macaroons and certs added through the UI are encrypted with AES-256-GCM using `DB_ENCRYPTION_KEY`. The IV and auth tag are stored alongside the ciphertext; rotating the key requires re-encrypting each record.
+
+```bash copy
+DB_ENCRYPTION_KEY='<64-char hex>'
+```
+
+## Throttling
+
+NestJS Throttler guards the unauthenticated login mutations:
+
+```bash copy
+THROTTLE_TTL=10           # window in seconds
+THROTTLE_LIMIT=10         # requests per window per IP
+```
+
+Each public auth mutation has its own decorator-level limit on top of the global default (e.g. `get_session_token` allows 4 attempts per 10s). Increase the global limit if your environment NATs many users behind one IP.
+
+## Cookie and session
+
+- Session cookie is `httpOnly`, `sameSite: true`, and marked `secure` when `USE_HTTPS=true`.
+- JWTs are signed with a per-process random secret in production (regenerated on every restart, which invalidates outstanding sessions).
+- Sessions expire after 24 hours.
+
+## Logout
+
+Hitting **Log out** clears the JWT cookie. For SSO setups, set `LOGOUT_URL` so users are redirected to the platform's own logout flow afterward.
+
+## Recommended baseline
+
+A reasonable production setup looks like:
+
+```bash copy
+NODE_ENV=production
+USE_HTTPS=true
+DB_TYPE=sqlite
+DB_SQLITE_PATH=/data/thunderhub.db
+DB_ENCRYPTION_KEY=<64-char hex>
+DISABLE_TWOFA=false
+THROTTLE_LIMIT=10
+THROTTLE_TTL=10
+```
+
+Plus 2FA enabled per YAML account if you still use them.

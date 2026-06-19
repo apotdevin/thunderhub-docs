@@ -1,0 +1,32 @@
+---
+title: Taproot Assets
+description: What ThunderHub exposes for Taproot Assets — managing assets, channels, and Magma RFQ trading.
+---
+
+ThunderHub treats Taproot Assets (TA) as a first-class part of the node UI. When you connect with `type: litd`, the asset features light up across the dashboard: balances, mint, send, receive, universe federation, asset invoices, channel asset balances, and Magma trading.
+
+The underlying daemon is [`tapd`](https://docs.lightning.engineering/lightning-network-tools/taproot-assets) bundled inside litd. ThunderHub speaks to `tapd` over its gRPC interface using the same superadmin/admin macaroon that authorizes the LND side.
+
+## Capability snapshot
+
+| Area                  | What's in the UI                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Assets**            | List, balances (grouped by asset ID or group key), mint with precision parameter, burn, send, receive. |
+| **Invoices**          | Create asset-denominated invoices via RFQ. Pay incoming asset invoices.                                |
+| **Universe**          | Sync, federation add/remove, public-access toggle (for nodes that publish their universe).             |
+| **Asset channels**    | View asset balances inside Lightning channels (active + pending), open private channels for orders.    |
+| **Trading**           | Magma RFQ — buy and sell assets with multi-hop circular rebalancing and on-chain liquidity safeguards. |
+| **Per-channel notes** | Inline memos on each channel, useful for tracking which channel is dedicated to which Magma order.     |
+
+## Requirements
+
+- A litd node (remote mode or embedded LND — see [Connect to litd](/accounts/litd)).
+- ThunderHub account configured with `type: litd`.
+- A configured **price oracle** for trading. See [Price Oracle](/taproot-assets/price-oracle).
+
+## Where to go next
+
+- **[Workflow](/taproot-assets/workflow)** — Mint and federate an asset end-to-end. Useful for testing the full path on regtest.
+- **[Price Oracle](/taproot-assets/price-oracle)** — Configure your litd's RFQ price oracle (Amboss recommended).
+- **[Magma trading](/taproot-assets/magma-trading)** — RFQ orders, buy/sell flows, and multi-hop swaps.
+- **[Developer environment](/developer/local-environment)** — Spin up a regtest network with two litd nodes to try all of the above locally.

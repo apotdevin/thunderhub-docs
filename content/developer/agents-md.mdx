@@ -1,0 +1,222 @@
+---
+title: AGENTS.md for AI coding agents
+description: Drop this AGENTS.md into the ThunderHub repo root so AI coding agents have the setup context they need.
+---
+
+Most AI coding agents (Claude Code, Cursor, Copilot, Aider, etc.) read an `AGENTS.md` or `CLAUDE.md` in the project root for project context. The block below gives an agent everything it needs to install, configure, and run ThunderHub against an LND or litd node — including Taproot Assets.
+
+## How to use
+
+```bash copy
+cd /path/to/thunderhub
+# Paste the AGENTS.md block from below into a new AGENTS.md file
+nano AGENTS.md
+```
+
+Then ask your agent for help — it'll already know your setup intent before you ask.
+
+<Callout type="info">
+  The ThunderHub repo also ships a
+  [`CLAUDE.md`](https://github.com/apotdevin/thunderhub/blob/master/CLAUDE.md)
+  which goes deeper into the codebase architecture for contributors. The
+  AGENTS.md below is the operator-facing companion.
+</Callout>
+
+---
+
+## AGENTS.md
+
+````markdown copy
+# AGENTS.md — ThunderHub
+
+This file gives AI agents the context they need to help set up and run ThunderHub.
+
+## What is ThunderHub?
+
+ThunderHub is an open-source web UI for managing Lightning Network nodes. It connects to LND or litd via gRPC and supports channel management, payments, on-chain transactions, Taproot Assets, and Magma trading.
+
+- Repo: https://github.com/apotdevin/thunderhub
+- Docs: https://docs.thunderhub.io
+
+## Requirements
+
+- Node.js 24+ and npm (if building from source). Pinned in `.nvmrc` to v24.13.1.
+- Docker (recommended path — no Node install needed).
+- A running LND or litd node.
+
+## Install ThunderHub
+
+### Option A: Docker (recommended)
+
+```bash
+docker run -d \
+  --name thunderhub \
+  -p 3000:3000 \
+  -e ACCOUNT_CONFIG_PATH=/data/thubConfig.yaml \
+  -v /path/to/thubConfig.yaml:/data/thubConfig.yaml:ro \
+  -v /path/to/.lnd:/lnd:ro \
+  apotdevin/thunderhub:latest
+```
+
+### Option B: Database mode (multi-user, UI-driven node management)
+
+```bash
+docker run -d \
+  --name thunderhub \
+  -p 3000:3000 \
+  -e DB_TYPE=sqlite \
+  -e DB_SQLITE_PATH=/data/thunderhub.db \
+  -e DB_ENCRYPTION_KEY=$(openssl rand -hex 32) \
+  -v thunderhub-data:/data \
+  apotdevin/thunderhub:latest
+```
+
+On first open, ThunderHub shows a setup screen — create an owner email + password, then add nodes through the UI.
+
+### Option C: From source
+
+```bash
+git clone https://github.com/apotdevin/thunderhub.git
+cd thunderhub
+npm install
+npm run build
+npm start
+```
+
+ThunderHub runs on http://localhost:3000 by default.
+
+## Configure ThunderHub (YAML mode)
+
+Create a `thubConfig.yaml`:
+
+```yaml
+masterPassword: 'your-secure-password'
+accounts:
+  - name: 'My Node'
+    serverUrl: '127.0.0.1:10009'
+    macaroonPath: '/path/to/admin.macaroon'
+    certificatePath: '/path/to/tls.cert'
+```
+
+Pass the path via `ACCOUNT_CONFIG_PATH`. Set `type: litd` on the account to expose Taproot Assets.
+
+### Credentials needed
+
+| File           | Default path                                       | Notes                                           |
+| -------------- | -------------------------------------------------- | ----------------------------------------------- |
+| TLS cert       | `~/.lnd/tls.cert` or `~/.lit/tls.cert`             | Depends on standalone LND vs litd.              |
+| Admin macaroon | `~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon` | Always under `~/.lnd`, even with embedded litd. |
+
+### Docker networking
+
+- macOS / Windows: `host.docker.internal:10009` as `serverUrl`.
+- Linux: use the host's LAN IP, or run with `--network=host`.
+
+### Environment variables (most useful)
+
+```bash
+PORT=3000
+ACCOUNT_CONFIG_PATH='/path/to/thubConfig.yaml'
+
+# Optional database mode
+DB_TYPE='sqlite'
+DB_SQLITE_PATH='/data/thunderhub.db'
+DB_ENCRYPTION_KEY='<64-char hex>'
+
+# Reverse proxy
+BASE_PATH='/thub'          # set at build time only
+USE_HTTPS=true
+```
+
+Full env var reference: https://docs.thunderhub.io/reference/env-vars
+
+## Taproot Assets — litd is required
+
+LND alone does not support Taproot Assets. To use TA in ThunderHub (mint, send, asset invoices, Magma trading), the node must be litd. litd bundles LND + Loop + Pool + Faraday + Taproot Assets (`tapd`) into one daemon.
+
+### Setup decision tree
+
+1. **Already have LND running** (most common)
+   → Install litd in **remote mode** alongside existing LND.
+   → LND stays untouched. litd connects to it and adds Taproot Assets.
+   → https://docs.thunderhub.io/accounts/litd#remote-mode-existing-lnd-litd-on-top
+
+2. **Starting from scratch**
+   → Install litd with its **embedded LND** (one binary).
+   → Then connect ThunderHub to it.
+   → https://docs.thunderhub.io/accounts/litd#embedded-lnd-litd-runs-its-own-lnd
+
+3. **Already have litd running**
+   → Connect ThunderHub to litd's LND gRPC endpoint.
+   → https://docs.thunderhub.io/accounts/litd#embedded-lnd-litd-runs-its-own-lnd
+
+### litd remote mode quick setup (existing LND)
+
+Install litd from https://github.com/lightninglabs/lightning-terminal/releases
+
+Create `~/.lit/lit.conf`:
+
+```ini
+lnd-mode=remote
+network=mainnet
+
+remote.lnd.rpcserver=127.0.0.1:10009
+remote.lnd.macaroonpath=/path/to/.lnd/data/chain/bitcoin/mainnet/admin.macaroon
+remote.lnd.tlscertpath=/path/to/.lnd/tls.cert
+
+uipassword=your-secure-ui-password
+httpslisten=0.0.0.0:8443
+```
+
+Start it: `litd --uipassword=your-secure-ui-password`. Requires LND v0.18.0+.
+
+### Configure a price oracle (required for trading)
+
+Add to `lit.conf`:
+
+```ini
+taproot-assets.experimental.rfq.priceoracleaddress=rfqrpc://price-oracle.amboss.tech:443
+```
+
+(Use `price-oracle-dev.amboss.tech` for testnet/mutinynet.) Restart litd. Details: https://docs.thunderhub.io/taproot-assets/price-oracle
+
+## Ports
+
+| Service     | Port  | Protocol |
+| ----------- | ----- | -------- |
+| LND gRPC    | 10009 | gRPC     |
+| litd UI/API | 8443  | HTTPS    |
+| ThunderHub  | 3000  | HTTP     |
+
+ThunderHub connects to LND gRPC on **port 10009**. Never point it at 8443.
+
+## Common mistakes
+
+1. Pointing ThunderHub at port 8443 instead of 10009.
+2. Using a macaroon from `~/.lit/` — the admin macaroon is always in `~/.lnd/`.
+3. TLS cert mismatch after LND restart — LND may regenerate its cert.
+4. Forgetting `type: litd` on the YAML account → Taproot Assets features won't appear.
+5. Losing `DB_ENCRYPTION_KEY` — every encrypted DB-node credential becomes unrecoverable.
+6. Docker permission errors — ThunderHub v0.15.0+ runs as non-root; mounted files must be readable.
+
+## Verification
+
+```bash
+# LND reachable?
+lncli getinfo
+
+# litd reachable?
+litcli --network=mainnet getinfo
+
+# ThunderHub up?
+curl -s http://localhost:3000 | head -1
+```
+
+## Full docs
+
+- Get Started: https://docs.thunderhub.io/get-started
+- Accounts: https://docs.thunderhub.io/accounts
+- Configure: https://docs.thunderhub.io/configure
+- Taproot Assets: https://docs.thunderhub.io/taproot-assets
+- Reference (env vars + YAML schema): https://docs.thunderhub.io/reference/env-vars
+````

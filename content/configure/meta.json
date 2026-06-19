@@ -1,0 +1,4 @@
+{
+  "title": "Configure",
+  "pages": ["index", "database", "security", "reverse-proxy"]
+}
