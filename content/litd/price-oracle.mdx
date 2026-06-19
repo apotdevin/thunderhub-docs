@@ -1,6 +1,7 @@
-import { Callout } from 'nextra/components';
-
-# Price Oracle Configuration
+---
+title: Price Oracle
+description: Configure a price oracle so your litd node can trade Taproot Assets safely.
+---
 
 When trading [Taproot Assets](https://docs.lightning.engineering/the-lightning-network/taproot-assets) (such as [USDTL](https://www.speed.app/usdtl/)) through ThunderHub and [RailsX](https://amboss.tech/railsx), your litd node performs **safety checks** on returned asset prices during asset swap negotiations to see whether the quoted prices are within an acceptable margin. These checks rely on a price oracle — an external service that provides exchange rate information for Taproot Assets.
 

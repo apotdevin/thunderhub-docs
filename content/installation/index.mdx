@@ -1,6 +1,7 @@
-import { Callout, Tabs } from 'nextra/components';
-
-# Installation
+---
+title: Getting Started
+description: Install ThunderHub locally, from source, or via Docker.
+---
 
 <Callout type="info">
   **Want a public URL in minutes?** Skip the local install and follow our
@@ -57,10 +58,8 @@ npm prune --production
 Run all commands from inside the `thunderhub` directory.
 
 <Tabs items={['Script', 'Manual']}>
-  <Tabs.Tab>```bash copy npm run update ```</Tabs.Tab>
-  <Tabs.Tab>
-    ```bash copy git pull npm install npm run build npm start ```
-  </Tabs.Tab>
+  <Tab>```bash copy npm run update ```</Tab>
+  <Tab>```bash copy git pull npm install npm run build npm start ```</Tab>
 </Tabs>
 
 ## Docker

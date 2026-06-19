@@ -1,6 +1,7 @@
-import { Callout, Tabs } from 'nextra/components';
-
-# Running litd with an Existing LND Node
+---
+title: litd with Existing LND
+description: Run litd in remote mode alongside an existing LND node to add Taproot Assets and Loop/Pool/Faraday.
+---
 
 If you already have an LND node running and want to add Lightning Terminal services (Loop, Pool, Faraday, Taproot Assets) alongside it, you can run litd in **remote mode**. This is the most common production setup — litd connects to your existing LND instance instead of running its own. See more [here](https://docs.lightning.engineering/lightning-network-tools/lightning-terminal/run-litd#docs-internal-guid-aaab01ad-7fff-a741-d263-1ff312b564b0).
 
@@ -20,7 +21,7 @@ If you already have an LND node running and want to add Lightning Terminal servi
 
 <Tabs items={['Binary', 'From source']}>
 
-<Tabs.Tab>
+<Tab>
 
 Download the latest release from [github.com/lightninglabs/lightning-terminal/releases](https://github.com/lightninglabs/lightning-terminal/releases) and extract it:
 
@@ -29,9 +30,9 @@ tar -xzf lightning-terminal-<version>-<os>-<arch>.tar.gz
 sudo install -m 0755 lightning-terminal-<version>-<os>-<arch>/litd /usr/local/bin/
 ```
 
-</Tabs.Tab>
+</Tab>
 
-<Tabs.Tab>
+<Tab>
 
 ```bash copy
 git clone https://github.com/lightninglabs/lightning-terminal.git
@@ -39,7 +40,7 @@ cd lightning-terminal
 make install
 ```
 
-</Tabs.Tab>
+</Tab>
 
 </Tabs>
 

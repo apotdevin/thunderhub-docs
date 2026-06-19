@@ -1,6 +1,7 @@
-import { Callout, Tabs } from 'nextra/components';
-
-# Connect ThunderHub to a Voltage LiTD Node
+---
+title: Voltage
+description: Connect a self-hosted ThunderHub instance to a Voltage Lightning node (mainnet or mutinynet).
+---
 
 This guide covers connecting a self-hosted ThunderHub instance to a [Voltage](https://voltage.cloud) Lightning node. Voltage nodes run litd under the hood, so ThunderHub can connect using the `litd` account type to get full node management including [Taproot Assets](https://docs.lightning.engineering/the-lightning-network/taproot-assets) support.
 
@@ -90,7 +91,7 @@ Create a `thubConfig.yaml` file:
 
 <Tabs items={['Mainnet', 'Mutinynet', 'Both']}>
 
-<Tabs.Tab>
+<Tab>
 
 ```yaml copy
 masterPassword: 'your-secure-password'
@@ -101,9 +102,9 @@ accounts:
     macaroonPath: '/data/voltage/superadmin.macaroon'
 ```
 
-</Tabs.Tab>
+</Tab>
 
-<Tabs.Tab>
+<Tab>
 
 ```yaml copy
 masterPassword: 'your-secure-password'
@@ -114,9 +115,9 @@ accounts:
     macaroonPath: '/data/voltage/superadmin.macaroon'
 ```
 
-</Tabs.Tab>
+</Tab>
 
-<Tabs.Tab>
+<Tab>
 
 ```yaml copy
 masterPassword: 'your-secure-password'
@@ -131,7 +132,7 @@ accounts:
     macaroonPath: '/data/voltage/mutinynet-superadmin.macaroon'
 ```
 
-</Tabs.Tab>
+</Tab>
 
 </Tabs>
 

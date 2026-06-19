@@ -1,6 +1,7 @@
-import { Callout, Tabs } from 'nextra/components';
-
-# Deploy to Fly.io
+---
+title: Deploy to Fly.io
+description: Deploy ThunderHub to Fly.io via the flyctl CLI or the Fly dashboard.
+---
 
 This guide walks you through deploying ThunderHub to [Fly.io](https://fly.io). It deploys applications as lightweight virtual machines (Fly Machines) close to users in edge locations worldwide.
 
@@ -27,21 +28,21 @@ The post-deploy steps (first-run setup, custom domain, updating) are the same fo
 {/* prettier-ignore-start */}
 
 <Tabs items={['macOS', 'Linux', 'Windows']}>
-  <Tabs.Tab>
+  <Tab>
     ```bash copy
     brew install flyctl
     ```
-  </Tabs.Tab>
-  <Tabs.Tab>
+  </Tab>
+  <Tab>
     ```bash copy
     curl -L https://fly.io/install.sh | sh
     ```
-  </Tabs.Tab>
-  <Tabs.Tab>
+  </Tab>
+  <Tab>
     ```powershell copy
     pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"
     ```
-  </Tabs.Tab>
+  </Tab>
 </Tabs>
 
 {/* prettier-ignore-end */}
@@ -106,17 +107,17 @@ ThunderHub encrypts every node credential it stores using AES-256-GCM. Generate 
 {/* prettier-ignore-start */}
 
 <Tabs items={['macOS / Linux', 'Windows (PowerShell)']}>
-  <Tabs.Tab>
+  <Tab>
     ```bash copy
     fly secrets set DB_ENCRYPTION_KEY=$(openssl rand -hex 32)
     ```
-  </Tabs.Tab>
-  <Tabs.Tab>
+  </Tab>
+  <Tab>
     ```powershell copy
     $key = -join ((1..32) | ForEach-Object { '{0:x2}' -f (Get-Random -Maximum 256) })
     fly secrets set DB_ENCRYPTION_KEY=$key
     ```
-  </Tabs.Tab>
+  </Tab>
 </Tabs>
 
 {/* prettier-ignore-end */}
@@ -200,16 +201,16 @@ Generate one locally and paste the output:
 {/* prettier-ignore-start */}
 
 <Tabs items={['macOS / Linux', 'Windows (PowerShell)']}>
-  <Tabs.Tab>
+  <Tab>
     ```bash copy
     openssl rand -hex 32
     ```
-  </Tabs.Tab>
-  <Tabs.Tab>
+  </Tab>
+  <Tab>
     ```powershell copy
     -join ((1..32) | ForEach-Object { '{0:x2}' -f (Get-Random -Maximum 256) })
     ```
-  </Tabs.Tab>
+  </Tab>
 </Tabs>
 
 {/* prettier-ignore-end */}

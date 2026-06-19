@@ -1,15 +1,19 @@
-import { useMDXComponents as getDocsMDXComponents } from 'nextra-theme-docs';
-import { Image } from 'nextra/components';
+import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import type { MDXComponents } from 'mdx/types';
 
-const docsComponents = getDocsMDXComponents({
-  img: Image,
-});
-
-export function useMDXComponents(
-  components?: Record<string, React.ComponentType>
-) {
+export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
-    ...docsComponents,
+    ...defaultMdxComponents,
+    Callout,
+    Tab,
+    Tabs,
+    Step,
+    Steps,
     ...components,
   };
 }
+
+export const useMDXComponents = getMDXComponents;
